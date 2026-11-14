@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061a3a">
+  <title>Shipment Admin | Ocean Bridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <div class="admin-container admin-header-inner">
+      <a href="./" aria-label="Ocean Bridge home"><img src="./Logo.png" alt="Ocean Bridge"></a>
+      <a class="back-link" href="./">Back to tracking</a>
+    </div>
+  </header>
+  <main class="admin-container admin-main">
+    <p class="eyebrow">OCEAN BRIDGE OPERATIONS</p>
+    <h1>Shipment management</h1>
+    <p class="intro">Update shipment status, route details, and tracking events.</p>
+    <p class="admin-message" id="admin-message" role="status" aria-live="polite"></p>
+
+    <section class="login-panel" id="login-panel" aria-labelledby="login-title">
+      <h2 id="login-title">Admin sign in</h2>
+      <form id="login-form">
+        <label for="admin-password">Admin password</label>
+        <input id="admin-password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <section class="editor" id="editor" hidden>
+      <div class="editor-toolbar">
+        <label for="shipment-select">Shipment record</label>
+        <select id="shipment-select"></select>
+        <button class="button-secondary" id="new-shipment" type="button">New shipment</button>
+        <button class="button-secondary" id="logout" type="button">Sign out</button>
+      </div>
+      <div class="admin-tabs" role="tablist" aria-label="Admin tools">
+        <button id="shipments-tab" class="admin-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="shipments-view">Shipments</button>
+        <button id="receipt-tab" class="admin-tab" type="button" role="tab" aria-selected="false" aria-controls="receipt-view">Receipt generator</button>
+      </div>
+      <section id="shipments-view" role="tabpanel" aria-labelledby="shipments-tab">
+      <form id="shipment-form" hidden>
+        <div class="record-grid">
+          <label>Tracking ID
+            <input id="shipment-id" name="id" type="text" autocomplete="off" required pattern="[A-Z0-9]+" maxlength="40">
+          </label>
+          <label>Status
+            <select id="shipment-status" name="status" required>
+              <option>In Transit</option>
+              <option>Delivered</option>
+              <option>Exception</option>
+              <option>Pending</option>
+            </select>
+          </label>
+          <label>Origin
+            <input id="shipment-origin" name="origin" type="text" required maxlength="120">
+          </label>
+          <label>Destination
+            <input id="shipment-destination" name="destination" type="text" required maxlength="120">
+          </label>
+          <label>Shipping method
+            <input id="shipment-method" name="shippingMethod" type="text" maxlength="80" placeholder="e.g. Air Freight">
+          </label>
+          <label>Estimated delivery
+            <input id="shipment-eta" name="estimatedDelivery" type="date">
+          </label>
+        </div>
+        <div class="events-heading">
+          <div>
+            <h2>Tracking events</h2>
+            <p>Keep the current location first, then list older events.</p>
+          </div>
+          <button class="button-secondary" id="add-event" type="button">Add event</button>
+        </div>
+        <div class="event-list" id="event-list"></div>
+        <div class="form-actions">
+          <button type="submit">Save shipment</button>
+          <button class="button-danger" id="delete-shipment" type="button">Delete shipment</button>
+        </div>
+      </form>
+      </section>
+      <section class="receipt-view" id="receipt-view" role="tabpanel" aria-labelledby="receipt-tab" hidden>
+        <div class="receipt-workspace">
+          <form id="receipt-form" class="receipt-form">
+            <div class="receipt-form-heading">
+              <h2>Receipt details</h2>
+              <p>Enter the shipment and payment details to build a printable Ocean Bridge receipt.</p>
+            </div>
+            <div class="record-grid">
+              <label>Receipt number<input id="receipt-number" name="receiptNumber" required maxlength="40"></label>
+              <label>Receipt date<input id="receipt-date" name="receiptDate" type="date" required></label>
+              <label>Tracking number<input id="receipt-tracking" name="trackingNumber" required maxlength="40"></label>
+              <label>Shipping service<input id="receipt-service" name="service" required maxlength="80" placeholder="e.g. International Air Freight"></label>
+              <label>Shipper name<input id="receipt-shipper" name="shipper" required maxlength="100"></label>
+              <label>Consignee name<input id="receipt-consignee" name="consignee" required maxlength="100"></label>
+              <label>Origin address<textarea id="receipt-origin" name="originAddress" rows="3" required maxlength="240"></textarea></label>
+              <label>Destination address<textarea id="receipt-destination" name="destinationAddress" rows="3" required maxlength="240"></textarea></label>
+              <label>Contents<input id="receipt-contents" name="contents" required maxlength="120"></label>
+              <label>Pieces<input id="receipt-pieces" name="pieces" type="number" min="1" step="1" value="1" required></label>
+              <label>Weight<input id="receipt-weight" name="weight" required maxlength="50" placeholder="e.g. 6 kg"></label>
+              <label>Estimated delivery<input id="receipt-estimate" name="estimatedDelivery" maxlength="80" placeholder="e.g. 2-3 business days"></label>
+              <label>Shipment status
+                <select id="receipt-status" name="shipmentStatus" required>
+                  <option>Pending</option>
+                  <option>In Transit</option>
+                  <option>Delivered</option>
+                  <option>Exception</option>
+                </select>
+              </label>
+              <label>Currency
+                <select id="receipt-currency" name="currency">
+                  <option value="GBP">GBP (£)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="receipt-charges-heading">
+              <div><h3>Charges</h3><p>Enter each charge before recording payment.</p></div>
+              <button class="button-secondary" id="add-charge" type="button">Add charge</button>
+            </div>
+            <div class="receipt-charge-list" id="receipt-charge-list"></div>
+
+            <div class="record-grid payment-grid">
+              <label>Payment status
+                <select id="receipt-payment-status" name="paymentStatus">
+                  <option value="Pending">Pending</option>
+                  <option value="Partially Paid">Partially paid</option>
+                  <option value="Paid">Paid</option>
+                </select>
+              </label>
+              <label>Amount paid<input id="receipt-paid" name="amountPaid" type="number" min="0" step="0.01" value="0"></label>
+              <label>Customer service email<input id="receipt-contact" name="customerService" type="email" value="oceanbridgeship@gmail.com" required></label>
+            </div>
+            <div class="receipt-actions">
+              <button type="submit">Update receipt preview</button>
+              <button class="button-secondary" id="print-receipt" type="button">Print / Save PDF</button>
+            </div>
+            <p class="receipt-form-status" id="receipt-form-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <section class="receipt-preview-area" aria-label="Receipt preview">
+            <article class="receipt-sheet" id="receipt-document">
+              <header class="receipt-header">
+                <img src="./Logo.png" alt="Ocean Bridge">
+                <div class="receipt-brand-tag">GLOBAL SHIPPING<br>SHIPMENT RECEIPT</div>
+                <div class="receipt-title-block"><span>OCEAN BRIDGE</span><strong>SHIPPING RECEIPT</strong></div>
+              </header>
+              <div class="receipt-meta"><span>Receipt No. <strong id="preview-receipt-number"></strong></span><span>Date: <strong id="preview-receipt-date"></strong></span></div>
+              <section class="receipt-tracking-block"><div><span>TRACKING NUMBER</span><strong id="preview-tracking"></strong></div></section>
+              <section class="receipt-section">
+                <h3>SHIPPER / CONSIGNEE</h3>
+                <div class="receipt-two-col">
+                  <div><span>FROM</span><strong id="preview-shipper"></strong><small>PICKUP / ORIGIN</small><p id="preview-origin"></p></div>
+                  <div><span>TO</span><strong id="preview-consignee"></strong><small>DELIVERY / DESTINATION</small><p id="preview-destination"></p></div>
+                </div>
+              </section>
+              <section class="receipt-section">
+                <h3>SHIPMENT DETAILS</h3>
+                <div class="receipt-two-col receipt-facts">
+                  <div><span>CONTENTS</span><strong id="preview-contents"></strong></div>
+                  <div><span>SERVICE</span><strong id="preview-service"></strong></div>
+                  <div><span>PIECES / WEIGHT</span><strong><span id="preview-pieces"></span> <span id="preview-piece-label">pieces</span> | <span id="preview-weight"></span></strong></div>
+                  <div><span>EST. DELIVERY</span><strong id="preview-estimate"></strong></div>
+                </div>
+              </section>
+              <section class="receipt-section">
+                <h3>CHARGES</h3>
+                <div class="receipt-charge-preview" id="receipt-charge-preview"></div>
+                <div class="receipt-total-row"><strong>TOTAL</strong><strong id="preview-total"></strong></div>
+                <div class="receipt-payment-row"><span>AMOUNT PAID</span><strong id="preview-paid"></strong><b id="preview-payment-status"></b></div>
+                <div class="receipt-pending-row"><span>BALANCE PENDING</span><strong id="preview-pending"></strong><b id="preview-pending-label"></b></div>
+              </section>
+              <section class="receipt-status-block"><div><span>CURRENT SHIPMENT STATUS</span><strong id="preview-status"></strong></div><div><span>CUSTOMER SERVICE</span><strong id="preview-contact"></strong></div></section>
+              <footer class="receipt-footer">Prepared by Ocean Bridge. Shipment and payment details reflect information entered by the operator. Retain this receipt for your records.</footer>
+            </article>
+          </section>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="./admin.js?v=receipt-generator"></script>
+</body>
+</html>

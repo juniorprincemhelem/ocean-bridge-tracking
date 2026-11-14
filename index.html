@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061a3a">
+  <title>Ocean Bridge | Shipment Tracking</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a class="logo" href="#top" aria-label="Ocean Bridge home"><img src="./Logo.png" alt="Ocean Bridge"></a>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="active" href="#top">Home</a>
+        <a href="#track">Track Shipment</a>
+        <a class="nav-services" href="#services">Our Services</a>
+        <a href="#coverage">Service Areas</a>
+        <a href="#faq">FAQs</a>
+        <a href="#about">About Us</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <a class="login-link" href="./admin.html">Admin</a>
+      <details class="mobile-menu">
+        <summary aria-label="Open navigation menu">Menu</summary>
+        <nav aria-label="Mobile navigation">
+          <a href="#top">Home</a>
+          <a href="#track">Track Shipment</a>
+          <a href="#services">Our Services</a>
+          <a href="#coverage">Service Areas</a>
+          <a href="#faq">FAQs</a>
+          <a href="#about">About Us</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </details>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" id="track">
+      <div class="container hero-content">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">FAST. SAFE. RELIABLE.</p>
+          <h1><span class="hero-title hero-title-home">Global shipping.<br>Made <em>simple.</em></span><span class="hero-title hero-title-tracking" hidden>Real-time tracking.<br>Total <em>peace of mind.</em></span></h1>
+          <p class="sub" id="hero-subtitle">Ship anywhere, anytime, with speed, safety and trust.</p>
+          <form class="track-box" id="track-form">
+            <label class="visually-hidden" for="tracking-input">Tracking number</label>
+            <span class="package-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10M7.5 5l9 4"/></svg>
+            </span>
+            <input id="tracking-input" name="trackingId" type="text" placeholder="Enter tracking number" autocomplete="off" required>
+            <button type="submit"><span>Track Shipment</span><span aria-hidden="true">&#8594;</span></button>
+          </form>
+          <p class="tracking-loading" id="tracking-loading" role="status" aria-live="polite" hidden>Checking your tracking details...</p>
+          <p class="error" id="error" role="alert" hidden></p>
+        </div>
+      </div>
+      <ul class="container trust-strip" aria-label="Ocean Bridge service commitments">
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg>
+          <span>Worldwide<br>Coverage</span>
+        </li>
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span>Safe &amp; Secure<br>Delivery</span>
+        </li>
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m13 2-3 8h7L8 22l3-9H4l9-11Z"/></svg>
+          <span>Fast &amp; Reliable<br>Service</span>
+        </li>
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17 2 2a2 2 0 0 0 3-3"/><path d="m14 14 2 2a2 2 0 0 0 3-3l-5-5a3 3 0 0 0-4 0l-1 1"/><path d="m5 12 4-4a3 3 0 0 1 4 0l1 1"/><path d="m3 14 5 5a2 2 0 0 0 3-3l-2-2"/><path d="m2 12 5-5 3 3-5 5-3-3ZM22 12l-5-5-3 3 5 5 3-3Z"/></svg>
+          <span>Your Trusted<br>Logistics Partner</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="result container" id="result" aria-live="polite" hidden>
+      <div class="result-card">
+        <div class="result-head">
+          <div class="shipment-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/></svg>
+          </div>
+          <div class="shipment-identity">
+            <p class="section-kicker">SHIPMENT DETAILS</p>
+            <p class="label">Tracking number</p>
+            <h2 id="res-id"></h2>
+          </div>
+          <div class="result-status">
+            <p class="label">Current status</p>
+            <span class="badge" id="res-status"></span>
+            <p class="muted" id="res-updated"></p>
+          </div>
+        </div>
+        <div class="result-content">
+          <section class="result-progress" aria-labelledby="progress-title">
+            <div class="panel-heading">
+              <h3 id="progress-title">Shipment Progress</h3>
+              <span id="progress-count"></span>
+            </div>
+            <ol class="timeline" id="timeline"></ol>
+          </section>
+          <aside class="result-aside">
+            <div class="map-card" aria-label="Shipment route map">
+              <div id="map"></div>
+            </div>
+            <section class="shipment-info" aria-labelledby="shipment-info-title">
+              <h3 id="shipment-info-title">Shipment Information</h3>
+              <dl>
+                <div><dt>Origin</dt><dd id="res-origin"></dd></div>
+                <div><dt>Destination</dt><dd id="res-dest"></dd></div>
+                <div><dt>Current Location</dt><dd id="res-location"></dd></div>
+                <div id="shipping-method-row" hidden><dt>Shipping Method</dt><dd id="res-method"></dd></div>
+                <div id="estimated-delivery-row" hidden><dt>Estimated Delivery</dt><dd id="res-eta"></dd></div>
+              </dl>
+            </section>
+          </aside>
+        </div>
+      </div>
+      <div class="care-banner">
+        <span class="care-icon" aria-hidden="true">&#10003;</span>
+        <div><strong>Your shipment is in good hands.</strong><p>Ocean Bridge keeps you informed at every step.</p></div>
+        <img src="./Logo.png" alt="Ocean Bridge">
+      </div>
+    </section>
+
+    <section class="services" id="services">
+      <div class="container">
+        <div class="section-intro">
+          <p class="section-kicker">OUR SERVICES</p>
+          <h2>Shipping that keeps you in control.</h2>
+          <p>Clear information at every stage of your shipment's journey.</p>
+        </div>
+        <div class="service-grid">
+          <article class="service-item">
+            <span class="service-number">01</span>
+            <h3>Cross-border shipping</h3>
+            <p>Follow international shipments from their point of origin to their destination.</p>
+          </article>
+          <article class="service-item">
+            <span class="service-number">02</span>
+            <h3>Shipment visibility</h3>
+            <p>See the latest scan, timestamp and route stops in one convenient view.</p>
+          </article>
+          <article class="service-item">
+            <span class="service-number">03</span>
+            <h3>Delivery progress</h3>
+            <p>Keep up with your shipment's status from pickup through its final delivery.</p>
+          </article>
+        </div>
+        <div class="operations">
+          <div class="operations-intro">
+            <div>
+              <p class="section-kicker">OUR NETWORK</p>
+              <h3>From warehouse floor to takeoff.</h3>
+            </div>
+            <p>Meet the people and see the places that move each shipment through its journey.</p>
+          </div>
+          <div class="operations-grid">
+            <figure class="operation-photo operation-warehouse">
+              <img src="./Warehouse%20image1.png" alt="Ocean Bridge warehouse team preparing palletized cargo for dispatch" loading="lazy">
+              <figcaption><span>WAREHOUSE</span><strong>Careful handling at every handoff.</strong></figcaption>
+            </figure>
+            <figure class="operation-photo operation-team">
+              <img src="./Warehouse%20image3.png" alt="Ocean Bridge logistics team coordinating work beside a cargo vessel" loading="lazy">
+              <figcaption><span>OUR TEAM</span><strong>People behind each shipment.</strong></figcaption>
+            </figure>
+            <figure class="operation-photo operation-flight">
+              <img src="./OceanBridge%20cargo%20aircraft%20taking%20off.png" alt="Ocean Bridge cargo aircraft departing an international airport" loading="lazy">
+              <figcaption><span>AIR FREIGHT</span><strong>Ready for the next destination.</strong></figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="about" id="about">
+      <div class="container about-inner">
+        <p class="section-kicker">ABOUT OCEAN BRIDGE</p>
+        <h2>Global shipping.<br>Clear at every step.</h2>
+        <p>Ocean Bridge brings shipment status, route history and location details together, making it easier to follow a delivery across borders.</p>
+        <a class="about-link" href="#track">Track a shipment <span aria-hidden="true">&#8594;</span></a>
+      </div>
+    </section>
+
+    <section class="service-area" id="coverage">
+      <div class="container service-area-inner">
+        <div>
+          <p class="section-kicker">ROUTES &amp; AVAILABILITY</p>
+          <h2>Planning an international shipment?</h2>
+        </div>
+        <div>
+          <p>Service availability, transit times, customs requirements, and pricing depend on the shipment and route. Send us your origin and destination so our team can confirm the options before you book.</p>
+          <a class="about-link" href="#quote-form">Request a route quote <span aria-hidden="true">&#8594;</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="faq-section" id="faq">
+      <div class="container faq-inner">
+        <div class="section-intro">
+          <p class="section-kicker">HELP &amp; SUPPORT</p>
+          <h2>Common shipment questions.</h2>
+          <p>For help with a specific shipment, include its tracking number in your message.</p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Why hasn't my shipment updated?</summary>
+            <p>Tracking changes when a shipment event is recorded. Updates may pause while a parcel is moving between facilities or awaiting its next scan. If the pause seems unusual, send support your tracking number and the last update you can see.</p>
+          </details>
+          <details>
+            <summary>What should I do if customs is holding my shipment?</summary>
+            <p>Check any official notice for the documents or information requested. Customs decisions and charges are set by the relevant authorities and depend on the route and shipment. Contact our team with your tracking number before acting on an unexpected payment request.</p>
+          </details>
+          <details>
+            <summary>What if delivery is late or unsuccessful?</summary>
+            <p>Send us your tracking number and a short description of the issue. Our team can review the latest recorded event and advise you on the next step. Delivery timing can vary by route and local conditions.</p>
+          </details>
+          <details>
+            <summary>Is my quote request a confirmed booking?</summary>
+            <p>No. A quote request opens a draft email for you to review and send. Your shipment is not booked until Ocean Bridge confirms the service and booking details with you.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contact">
+      <div class="container">
+        <div class="section-intro">
+          <p class="section-kicker">CONTACT OCEAN BRIDGE</p>
+          <h2>How can we help?</h2>
+          <p>Choose a quote request or shipment support. Your details will be added to a Gmail draft for you to review.</p>
+        </div>
+        <div class="contact-grid">
+          <form class="contact-form" id="quote-form">
+            <h3>Request a quote</h3>
+            <p class="form-intro">Share your route and cargo details. This is a request, not a confirmed booking.</p>
+            <label for="quote-name">Your name</label>
+            <input id="quote-name" name="name" autocomplete="name" required maxlength="100">
+            <label for="quote-email">Email address</label>
+            <input id="quote-email" name="email" type="email" autocomplete="email" required maxlength="160">
+            <div class="form-row">
+              <div><label for="quote-origin">Origin</label><input id="quote-origin" name="origin" required maxlength="120" placeholder="City or country"></div>
+              <div><label for="quote-destination">Destination</label><input id="quote-destination" name="destination" required maxlength="120" placeholder="City or country"></div>
+            </div>
+            <label for="quote-cargo">Cargo description</label>
+            <textarea id="quote-cargo" name="cargo" rows="3" required maxlength="500"></textarea>
+            <label for="quote-weight">Approximate weight (optional)</label>
+            <input id="quote-weight" name="weight" maxlength="60" placeholder="e.g. 120 kg">
+            <button type="submit">Prepare quote email <span aria-hidden="true">&#8594;</span></button>
+            <p class="form-status" id="quote-status" role="status" aria-live="polite"></p>
+          </form>
+
+          <form class="contact-form" id="support-form">
+            <h3>Shipment support</h3>
+            <p class="form-intro">Tell us what happened and include your tracking number.</p>
+            <label for="support-name">Your name</label>
+            <input id="support-name" name="name" autocomplete="name" required maxlength="100">
+            <label for="support-email">Email address</label>
+            <input id="support-email" name="email" type="email" autocomplete="email" required maxlength="160">
+            <label for="support-tracking">Tracking number</label>
+            <input id="support-tracking" name="tracking" autocomplete="off" maxlength="40">
+            <label for="support-topic">What do you need help with?</label>
+            <select id="support-topic" name="topic" required>
+              <option value="">Select a topic</option>
+              <option>Shipment delay</option>
+              <option>Customs question</option>
+              <option>Delivery issue</option>
+              <option>Other shipment question</option>
+            </select>
+            <label for="support-message">Message</label>
+            <textarea id="support-message" name="message" rows="5" required maxlength="1000"></textarea>
+            <button type="submit">Prepare support email <span aria-hidden="true">&#8594;</span></button>
+            <p class="form-status" id="support-status" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" id="footer">
+    <div class="container footer-inner">
+      <div>
+        <p><strong>Ocean Bridge</strong></p>
+        <p>Global shipment visibility</p>
+      </div>
+      <div class="footer-meta">
+        <a class="contact-icon-link" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=oceanbridgeship%40gmail.com&amp;su=Shipment%20support%20request&amp;body=Hello%20Ocean%20Bridge%20team%2C%0A%0AI%20need%20help%20with%20my%20shipment.%0A%0ATracking%20number%3A%20%5Benter%20tracking%20number%5D%0A%0AThank%20you%2C%0A%5BYour%20name%5D" target="_blank" rel="noopener noreferrer" aria-label="Email Ocean Bridge using Gmail" title="Email Ocean Bridge using Gmail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        </a>
+        <a class="legal-link" href="./privacy.html">Privacy</a>
+        <a class="legal-link" href="./terms.html">Terms</a>
+        <p>&copy; <span id="year"></span> Ocean Bridge</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script type="module" src="./app.js?v=support-requests"></script>
+</body>
+</html>

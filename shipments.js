@@ -1,0 +1,28 @@
+// Ocean Bridge shipment data.
+// Add or edit shipments here. The key is the tracking ID (UPPERCASE, no spaces).
+// "history" goes newest first; the first entry is the current location.
+// lat/lng are what put the pin on the map.
+
+export const SHIPMENTS = {
+  "OB1000123456": {
+    status: "In Transit",
+    origin: "Shanghai, China",
+    destination: "Los Angeles, USA",
+    history: [
+      { location: "Port of Singapore", lat: 1.2644, lng: 103.8223, time: "Nov 12, 2026 · 09:20", note: "Arrived at transit hub" },
+      { location: "Shenzhen, China", lat: 22.5431, lng: 114.0579, time: "Nov 10, 2026 · 17:45", note: "Departed sorting facility" },
+      { location: "Shanghai, China", lat: 31.2304, lng: 121.4737, time: "Nov 9, 2026 · 11:05", note: "Package picked up" }
+    ]
+  },
+
+  "OB2000987654": {
+    status: "Delivered",
+    origin: "Dubai, UAE",
+    destination: "London, UK",
+    history: [
+      { location: "London, UK", lat: 51.5072, lng: -0.1276, time: "Nov 11, 2026 · 14:30", note: "Delivered to recipient" },
+      { location: "Istanbul, Turkey", lat: 41.0082, lng: 28.9784, time: "Nov 9, 2026 · 08:10", note: "Cleared customs" },
+      { location: "Dubai, UAE", lat: 25.2048, lng: 55.2708, time: "Nov 5, 2026 · 16:00", note: "Package picked up" }
+    ]
+  }
+};

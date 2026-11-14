@@ -1,0 +1,146 @@
+import assert from "node:assert/strict";
+import { spawn } from "node:child_process";
+import { createServer } from "node:net";
+import { after, before, test } from "node:test";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const TEST_PASSWORD = "test-password-only";
+const TEST_SESSION_SECRET = "unit-test-session-secret-not-for-use";
+let temporaryDirectory;
+let baseUrl;
+let serverProcess;
+let sessionCookie;
+let seedShipment;
+
+async function getFreePort() {
+  const listener = createServer();
+  await new Promise((resolve, reject) => {
+    listener.once("error", reject);
+    listener.listen(0, "127.0.0.1", resolve);
+  });
+  const { port } = listener.address();
+  await new Promise((resolve, reject) => listener.close((error) => error ? reject(error) : resolve()));
+  return port;
+}
+
+async function waitForServer() {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      const response = await fetch(`${baseUrl}/api/admin/status`);
+      if (response.ok) return;
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error("Test server did not start in time.");
+}
+
+before(async () => {
+  temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "ocean-bridge-test-"));
+  const example = JSON.parse(await readFile(path.join(ROOT, "data", "shipments.example.json"), "utf8"));
+  seedShipment = example.OB1000123456;
+  const dataFile = path.join(temporaryDirectory, "shipments.json");
+  await writeFile(dataFile, JSON.stringify(example), "utf8");
+  const port = await getFreePort();
+  baseUrl = `http://127.0.0.1:${port}`;
+  serverProcess = spawn(process.execPath, [path.join(ROOT, "server.mjs")], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      ADMIN_PASSWORD: TEST_PASSWORD,
+      SESSION_SECRET: TEST_SESSION_SECRET,
+      SHIPMENTS_FILE: dataFile
+    },
+    stdio: "ignore"
+  });
+  await waitForServer();
+});
+
+after(async () => {
+  if (serverProcess && serverProcess.exitCode === null) {
+    serverProcess.kill();
+    await new Promise((resolve) => serverProcess.once("exit", resolve));
+  }
+  if (temporaryDirectory) await rm(temporaryDirectory, { recursive: true, force: true });
+});
+
+test("public tracking returns one matching record and 404 for an unknown ID", async () => {
+  const response = await fetch(`${baseUrl}/api/shipments/OB1000123456`);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).destination, "Los Angeles, USA");
+
+  const missing = await fetch(`${baseUrl}/api/shipments/OB4040000000`);
+  assert.equal(missing.status, 404);
+});
+
+test("admin shipment list requires an authenticated session", async () => {
+  const response = await fetch(`${baseUrl}/api/admin/shipments`);
+  assert.equal(response.status, 401);
+});
+
+test("login rejects cross-origin requests and invalid passwords", async () => {
+  const crossOrigin = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { Origin: "https://example.invalid", "Content-Type": "application/json" },
+    body: JSON.stringify({ password: TEST_PASSWORD })
+  });
+  assert.equal(crossOrigin.status, 403);
+
+  const invalidPassword = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { Origin: baseUrl, "Content-Type": "application/json" },
+    body: JSON.stringify({ password: "wrong-test-password" })
+  });
+  assert.equal(invalidPassword.status, 401);
+});
+
+test("admin can log in, update ETA and method, and create/delete a shipment", async () => {
+  const login = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { Origin: baseUrl, "Content-Type": "application/json" },
+    body: JSON.stringify({ password: TEST_PASSWORD })
+  });
+  assert.equal(login.status, 200);
+  sessionCookie = login.headers.get("set-cookie").split(";")[0];
+
+  const updatedShipment = {
+    ...seedShipment,
+    shippingMethod: "Air Freight",
+    estimatedDelivery: "2026-11-16"
+  };
+  const update = await fetch(`${baseUrl}/api/admin/shipments/OB1000123456`, {
+    method: "PUT",
+    headers: { Origin: baseUrl, Cookie: sessionCookie, "Content-Type": "application/json" },
+    body: JSON.stringify(updatedShipment)
+  });
+  assert.equal(update.status, 200);
+  const publicRecord = await fetch(`${baseUrl}/api/shipments/OB1000123456`);
+  const saved = await publicRecord.json();
+  assert.equal(saved.shippingMethod, "Air Freight");
+  assert.equal(saved.estimatedDelivery, "2026-11-16");
+
+  const invalidDate = await fetch(`${baseUrl}/api/admin/shipments/OB1000123456`, {
+    method: "PUT",
+    headers: { Origin: baseUrl, Cookie: sessionCookie, "Content-Type": "application/json" },
+    body: JSON.stringify({ ...updatedShipment, estimatedDelivery: "2026-02-31" })
+  });
+  assert.equal(invalidDate.status, 400);
+
+  const newId = "OB3000000001";
+  const create = await fetch(`${baseUrl}/api/admin/shipments/${newId}`, {
+    method: "PUT",
+    headers: { Origin: baseUrl, Cookie: sessionCookie, "Content-Type": "application/json" },
+    body: JSON.stringify(seedShipment)
+  });
+  assert.equal(create.status, 201);
+
+  const remove = await fetch(`${baseUrl}/api/admin/shipments/${newId}`, {
+    method: "DELETE",
+    headers: { Origin: baseUrl, Cookie: sessionCookie }
+  });
+  assert.equal(remove.status, 200);
+});
