@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { after, before, test } from "node:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { Readable } from "node:stream";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -102,6 +103,68 @@ test("login rejects cross-origin requests and invalid passwords", async () => {
     body: JSON.stringify({ password: "wrong-test-password" })
   });
   assert.equal(invalidPassword.status, 401);
+});
+
+test("login rate limiting handles a null socket and uses the forwarded client IP", async () => {
+  const environmentKeys = [
+    "ADMIN_PASSWORD",
+    "SESSION_SECRET",
+    "SHIPMENTS_FILE",
+    "VERCEL",
+    "UPSTASH_REDIS_REST_URL",
+    "UPSTASH_REDIS_REST_TOKEN",
+    "KV_REST_API_URL",
+    "KV_REST_API_TOKEN"
+  ];
+  const previousEnvironment = Object.fromEntries(environmentKeys.map((key) => [key, process.env[key]]));
+
+  Object.assign(process.env, {
+    ADMIN_PASSWORD: TEST_PASSWORD,
+    SESSION_SECRET: TEST_SESSION_SECRET,
+    SHIPMENTS_FILE: dataFile,
+    VERCEL: "",
+    UPSTASH_REDIS_REST_URL: "",
+    UPSTASH_REDIS_REST_TOKEN: "",
+    KV_REST_API_URL: "",
+    KV_REST_API_TOKEN: ""
+  });
+
+  try {
+    const { handleRequest } = await import("../server.mjs");
+    const requestLogin = async () => {
+      const request = Readable.from([Buffer.from(JSON.stringify({ password: "wrong-test-password" }))]);
+      Object.assign(request, {
+        method: "POST",
+        url: "/api/admin/login",
+        headers: {
+          origin: "https://example.test",
+          host: "example.test",
+          "x-forwarded-for": "203.0.113.42, 10.0.0.1"
+        },
+        socket: null
+      });
+      let status;
+      const response = {
+        writeHead(code) {
+          status = code;
+          return this;
+        },
+        end() {}
+      };
+      await handleRequest(request, response);
+      return status;
+    };
+
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      assert.equal(await requestLogin(), 401);
+    }
+    assert.equal(await requestLogin(), 429);
+  } finally {
+    for (const [key, value] of Object.entries(previousEnvironment)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
 
 test("admin can log in, update ETA and method, and create/delete a shipment", async () => {

@@ -78,6 +78,26 @@ function sign(value) {
   return createHmac("sha256", SESSION_SECRET).update(value).digest("base64url");
 }
 
+export function getClientIp(request) {
+  try {
+    const headers = request?.headers || {};
+    const firstIp = (value) => {
+      const header = Array.isArray(value) ? value[0] : value;
+      return typeof header === "string" ? header.split(",")[0].trim() : "";
+    };
+    const forwardedIp = firstIp(headers["x-forwarded-for"] ?? headers["X-Forwarded-For"]);
+    if (forwardedIp) return forwardedIp;
+
+    const realIp = firstIp(headers["x-real-ip"] ?? headers["X-Real-IP"]);
+    if (realIp) return realIp;
+
+    const remoteAddress = request?.socket?.remoteAddress ?? request?.connection?.remoteAddress;
+    return typeof remoteAddress === "string" && remoteAddress.trim() ? remoteAddress.trim() : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 function getAdminSession(request) {
   const [id, expiresAtValue, signature] = cookieValue(request, "ob_session").split(".");
   const expiresAt = Number(expiresAtValue);
@@ -203,7 +223,7 @@ function passwordMatches(candidate) {
 }
 
 function loginRateLimited(request) {
-  const key = request.socket.remoteAddress || "unknown";
+  const key = getClientIp(request);
   const current = loginAttempts.get(key);
   if (!current || current.resetAt <= Date.now()) {
     loginAttempts.set(key, { count: 0, resetAt: Date.now() + 15 * 60 * 1000 });
@@ -213,7 +233,7 @@ function loginRateLimited(request) {
 }
 
 function recordFailedLogin(request) {
-  const key = request.socket.remoteAddress || "unknown";
+  const key = getClientIp(request);
   const current = loginAttempts.get(key) || { count: 0, resetAt: Date.now() + 15 * 60 * 1000 };
   current.count += 1;
   loginAttempts.set(key, current);
@@ -302,7 +322,7 @@ export async function handleRequest(request, response) {
         sendJson(response, 401, { error: "Incorrect password." });
         return;
       }
-      loginAttempts.delete(request.socket.remoteAddress || "unknown");
+      loginAttempts.delete(getClientIp(request));
       const id = randomBytes(32).toString("base64url");
       const expiresAt = Date.now() + SESSION_MAX_AGE;
       sendJson(response, 200, { authenticated: true }, { "Set-Cookie": sessionCookie(request, `${id}.${expiresAt}.${sign(`${id}.${expiresAt}`)}`, SESSION_MAX_AGE / 1000) });
