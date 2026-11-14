@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import { createHmac, createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Redis } from "@upstash/redis";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(ROOT, "data");
@@ -11,9 +11,20 @@ const DATA_FILE = path.resolve(process.env.SHIPMENTS_FILE || path.join(DATA_DIR,
 const SAMPLE_FILE = path.join(DATA_DIR, "shipments.example.json");
 const PORT = Number(process.env.PORT || 8001);
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
-const SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString("hex");
+const SESSION_SECRET = process.env.SESSION_SECRET || (process.env.VERCEL ? "" : randomBytes(32).toString("hex"));
+const upstashUrl = process.env.UPSTASH_REDIS_REST_URL || "";
+const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const kvUrl = process.env.KV_REST_API_URL || "";
+const kvToken = process.env.KV_REST_API_TOKEN || "";
+const hasUpstashPair = Boolean(upstashUrl && upstashToken);
+const hasKvPair = Boolean(kvUrl && kvToken);
+const hasRedisConfig = Boolean(upstashUrl || upstashToken || kvUrl || kvToken);
+const redisConfigIncomplete = hasRedisConfig && !hasUpstashPair && !hasKvPair;
+const redisUrl = hasUpstashPair ? upstashUrl : hasKvPair ? kvUrl : "";
+const redisToken = hasUpstashPair ? upstashToken : hasKvPair ? kvToken : "";
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+const SHIPMENTS_KEY = "ocean-bridge:shipments";
 const SESSION_MAX_AGE = 8 * 60 * 60 * 1000;
-const sessions = new Map();
 const loginAttempts = new Map();
 const statuses = new Set(["In Transit", "Delivered", "Exception", "Pending"]);
 const mimeTypes = {
@@ -25,16 +36,32 @@ const mimeTypes = {
   ".svg": "image/svg+xml"
 };
 
-await mkdir(path.dirname(DATA_FILE), { recursive: true });
-try {
-  await readFile(DATA_FILE);
-} catch {
+async function initializeStore() {
+  if (redisConfigIncomplete) return;
+  if (redis) {
+    if (await redis.hlen(SHIPMENTS_KEY) === 0) {
+    const example = JSON.parse(await readFile(SAMPLE_FILE, "utf8"));
+      const seed = Object.fromEntries(Object.entries(example).map(([id, shipment]) => [id, JSON.stringify(shipment)]));
+      if (Object.keys(seed).length) await redis.hset(SHIPMENTS_KEY, seed);
+    }
+    return;
+  }
+
+  if (process.env.VERCEL) return;
+
+  await mkdir(path.dirname(DATA_FILE), { recursive: true });
   try {
-    await writeFile(DATA_FILE, await readFile(SAMPLE_FILE));
+    await readFile(DATA_FILE);
   } catch {
-    await writeFile(DATA_FILE, "{}\n", "utf8");
+    try {
+      await writeFile(DATA_FILE, await readFile(SAMPLE_FILE));
+    } catch {
+      await writeFile(DATA_FILE, "{}\n", "utf8");
+    }
   }
 }
+
+await initializeStore();
 
 function sendJson(response, status, value, headers = {}) {
   response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers });
@@ -52,23 +79,18 @@ function sign(value) {
 }
 
 function getAdminSession(request) {
-  const [id, signature] = cookieValue(request, "ob_session").split(".");
-  if (!id || !signature) return false;
-  const expected = sign(id);
+  const [id, expiresAtValue, signature] = cookieValue(request, "ob_session").split(".");
+  const expiresAt = Number(expiresAtValue);
+  if (!id || !Number.isFinite(expiresAt) || !signature || expiresAt <= Date.now()) return false;
+  const expected = sign(`${id}.${expiresAt}`);
   const actualBytes = Buffer.from(signature);
   const expectedBytes = Buffer.from(expected);
   if (actualBytes.length !== expectedBytes.length || !timingSafeEqual(actualBytes, expectedBytes)) return false;
-  const expiresAt = sessions.get(id);
-  if (!expiresAt || expiresAt <= Date.now()) {
-    sessions.delete(id);
-    return false;
-  }
-  sessions.set(id, Date.now() + SESSION_MAX_AGE);
   return true;
 }
 
 function sessionCookie(request, value, maxAge) {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  const secure = process.env.NODE_ENV === "production" || process.env.VERCEL ? "; Secure" : "";
   return `ob_session=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
 }
 
@@ -94,7 +116,44 @@ async function readBody(request) {
 }
 
 async function readShipments() {
+  if (redis) {
+    const records = await redis.hgetall(SHIPMENTS_KEY);
+    return Object.fromEntries(Object.entries(records || {}).map(([id, shipment]) => [
+      id,
+      typeof shipment === "string" ? JSON.parse(shipment) : shipment
+    ]));
+  }
   return JSON.parse(await readFile(DATA_FILE, "utf8"));
+}
+
+async function readShipment(id) {
+  if (redis) {
+    const shipment = await redis.hget(SHIPMENTS_KEY, id);
+    if (!shipment) return null;
+    return typeof shipment === "string" ? JSON.parse(shipment) : shipment;
+  }
+  return (await readShipments())[id] || null;
+}
+
+async function saveShipment(id, shipment) {
+  if (redis) {
+    await redis.hset(SHIPMENTS_KEY, { [id]: JSON.stringify(shipment) });
+    return;
+  }
+  const shipments = await readShipments();
+  shipments[id] = shipment;
+  await writeShipments(shipments);
+}
+
+async function deleteShipment(id) {
+  if (redis) {
+    return (await redis.hdel(SHIPMENTS_KEY, id)) > 0;
+  }
+  const shipments = await readShipments();
+  if (!shipments[id]) return false;
+  delete shipments[id];
+  await writeShipments(shipments);
+  return true;
 }
 
 async function writeShipments(shipments) {
@@ -188,24 +247,39 @@ async function serveStatic(request, response, pathname) {
   }
 }
 
-const server = createServer(async (request, response) => {
+export async function handleRequest(request, response) {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   const pathname = url.pathname;
 
   try {
     if (request.method === "GET" && pathname === "/api/admin/status") {
-      sendJson(response, 200, { configured: Boolean(ADMIN_PASSWORD) });
+      sendJson(response, 200, { configured: Boolean(ADMIN_PASSWORD && SESSION_SECRET) });
+      return;
+    }
+
+    if (redisConfigIncomplete) {
+      sendJson(response, 503, { error: "Redis storage is partially configured. Set both the REST URL and token." });
+      return;
+    }
+
+    if (process.env.VERCEL && !redis) {
+      sendJson(response, 503, { error: "Shipment storage is not configured. Set the Upstash Redis REST URL and token in Vercel." });
+      return;
+    }
+
+    if (process.env.VERCEL && pathname.startsWith("/api/admin/") && (!ADMIN_PASSWORD || !SESSION_SECRET)) {
+      sendJson(response, 503, { error: "Admin access is not configured. Set ADMIN_PASSWORD and SESSION_SECRET in Vercel." });
       return;
     }
 
     if (request.method === "GET" && pathname.startsWith("/api/shipments/")) {
       const id = decodeURIComponent(pathname.slice("/api/shipments/".length)).toUpperCase();
-      const shipments = await readShipments();
-      if (!shipments[id]) {
+      const shipment = await readShipment(id);
+      if (!shipment) {
         sendJson(response, 404, { error: "Shipment not found." });
         return;
       }
-      sendJson(response, 200, shipments[id]);
+      sendJson(response, 200, shipment);
       return;
     }
 
@@ -214,8 +288,8 @@ const server = createServer(async (request, response) => {
         sendJson(response, 403, { error: "Request origin rejected." });
         return;
       }
-      if (!ADMIN_PASSWORD) {
-        sendJson(response, 503, { error: "Admin access is not configured. Set ADMIN_PASSWORD before starting the server." });
+      if (!ADMIN_PASSWORD || !SESSION_SECRET) {
+        sendJson(response, 503, { error: "Admin access is not configured. Set ADMIN_PASSWORD and SESSION_SECRET before starting the server." });
         return;
       }
       if (loginRateLimited(request)) {
@@ -230,8 +304,8 @@ const server = createServer(async (request, response) => {
       }
       loginAttempts.delete(request.socket.remoteAddress || "unknown");
       const id = randomBytes(32).toString("base64url");
-      sessions.set(id, Date.now() + SESSION_MAX_AGE);
-      sendJson(response, 200, { authenticated: true }, { "Set-Cookie": sessionCookie(request, `${id}.${sign(id)}`, SESSION_MAX_AGE / 1000) });
+      const expiresAt = Date.now() + SESSION_MAX_AGE;
+      sendJson(response, 200, { authenticated: true }, { "Set-Cookie": sessionCookie(request, `${id}.${expiresAt}.${sign(`${id}.${expiresAt}`)}`, SESSION_MAX_AGE / 1000) });
       return;
     }
 
@@ -240,8 +314,6 @@ const server = createServer(async (request, response) => {
         sendJson(response, 403, { error: "Request origin rejected." });
         return;
       }
-      const id = cookieValue(request, "ob_session").split(".")[0];
-      sessions.delete(id);
       sendJson(response, 200, { authenticated: false }, { "Set-Cookie": sessionCookie(request, "", 0) });
       return;
     }
@@ -265,14 +337,11 @@ const server = createServer(async (request, response) => {
         return;
       }
       const id = decodeURIComponent(match[1]).toUpperCase();
-      const shipments = await readShipments();
       if (request.method === "DELETE") {
-        if (!shipments[id]) {
+        if (!(await deleteShipment(id))) {
           sendJson(response, 404, { error: "Shipment not found." });
           return;
         }
-        delete shipments[id];
-        await writeShipments(shipments);
         sendJson(response, 200, { deleted: id });
         return;
       }
@@ -283,8 +352,8 @@ const server = createServer(async (request, response) => {
           sendJson(response, 400, { error: validationError });
           return;
         }
-        const created = !shipments[id];
-        shipments[id] = {
+        const created = !(await readShipment(id));
+        const savedShipment = {
           status: shipment.status,
           origin: shipment.origin.trim(),
           destination: shipment.destination.trim(),
@@ -298,8 +367,8 @@ const server = createServer(async (request, response) => {
             note: entry.note.trim()
           }))
         };
-        await writeShipments(shipments);
-        sendJson(response, created ? 201 : 200, { id, shipment: shipments[id] });
+        await saveShipment(id, savedShipment);
+        sendJson(response, created ? 201 : 200, { id, shipment: savedShipment });
         return;
       }
       sendJson(response, 405, { error: "Method not allowed." });
@@ -316,9 +385,11 @@ const server = createServer(async (request, response) => {
     const message = error instanceof SyntaxError ? "Invalid JSON body." : error.message;
     sendJson(response, 400, { error: message || "Request failed." });
   }
-});
+}
 
-server.listen(PORT, () => {
-  console.log(`Ocean Bridge server running at http://localhost:${PORT}`);
-  if (!ADMIN_PASSWORD) console.warn("Admin login is disabled until ADMIN_PASSWORD is set.");
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  createServer(handleRequest).listen(PORT, () => {
+    console.log(`Ocean Bridge server running at http://localhost:${PORT}`);
+    if (!ADMIN_PASSWORD) console.warn("Admin login is disabled until ADMIN_PASSWORD is set.");
+  });
+}

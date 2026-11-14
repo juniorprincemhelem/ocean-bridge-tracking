@@ -15,6 +15,7 @@ let baseUrl;
 let serverProcess;
 let sessionCookie;
 let seedShipment;
+let dataFile;
 
 async function getFreePort() {
   const listener = createServer();
@@ -27,10 +28,10 @@ async function getFreePort() {
   return port;
 }
 
-async function waitForServer() {
+async function waitForServer(url) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
-      const response = await fetch(`${baseUrl}/api/admin/status`);
+      const response = await fetch(`${url}/api/admin/status`);
       if (response.ok) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -42,7 +43,7 @@ before(async () => {
   temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), "ocean-bridge-test-"));
   const example = JSON.parse(await readFile(path.join(ROOT, "data", "shipments.example.json"), "utf8"));
   seedShipment = example.OB1000123456;
-  const dataFile = path.join(temporaryDirectory, "shipments.json");
+  dataFile = path.join(temporaryDirectory, "shipments.json");
   await writeFile(dataFile, JSON.stringify(example), "utf8");
   const port = await getFreePort();
   baseUrl = `http://127.0.0.1:${port}`;
@@ -53,11 +54,16 @@ before(async () => {
       PORT: String(port),
       ADMIN_PASSWORD: TEST_PASSWORD,
       SESSION_SECRET: TEST_SESSION_SECRET,
+      VERCEL: "",
+      UPSTASH_REDIS_REST_URL: "",
+      UPSTASH_REDIS_REST_TOKEN: "",
+      KV_REST_API_URL: "",
+      KV_REST_API_TOKEN: "",
       SHIPMENTS_FILE: dataFile
     },
     stdio: "ignore"
   });
-  await waitForServer();
+  await waitForServer(baseUrl);
 });
 
 after(async () => {
@@ -143,4 +149,58 @@ test("admin can log in, update ETA and method, and create/delete a shipment", as
     headers: { Origin: baseUrl, Cookie: sessionCookie }
   });
   assert.equal(remove.status, 200);
+
+  const logout = await fetch(`${baseUrl}/api/admin/logout`, {
+    method: "POST",
+    headers: { Origin: baseUrl, Cookie: sessionCookie }
+  });
+  assert.equal(logout.status, 200);
+  assert.match(logout.headers.get("set-cookie"), /Max-Age=0/);
+
+  const afterLogout = await fetch(`${baseUrl}/api/admin/shipments`, {
+    headers: { Cookie: logout.headers.get("set-cookie").split(";")[0] }
+  });
+  assert.equal(afterLogout.status, 401);
+});
+
+test("signed admin cookies work in a fresh server process", async () => {
+  const login = await fetch(`${baseUrl}/api/admin/login`, {
+    method: "POST",
+    headers: { Origin: baseUrl, "Content-Type": "application/json" },
+    body: JSON.stringify({ password: TEST_PASSWORD })
+  });
+  assert.equal(login.status, 200);
+  const cookie = login.headers.get("set-cookie").split(";")[0];
+
+  const port = await getFreePort();
+  const secondUrl = `http://127.0.0.1:${port}`;
+  const secondServer = spawn(process.execPath, [path.join(ROOT, "server.mjs")], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      ADMIN_PASSWORD: TEST_PASSWORD,
+      SESSION_SECRET: TEST_SESSION_SECRET,
+      VERCEL: "",
+      UPSTASH_REDIS_REST_URL: "",
+      UPSTASH_REDIS_REST_TOKEN: "",
+      KV_REST_API_URL: "",
+      KV_REST_API_TOKEN: "",
+      SHIPMENTS_FILE: dataFile
+    },
+    stdio: "ignore"
+  });
+
+  try {
+    await waitForServer(secondUrl);
+    const response = await fetch(`${secondUrl}/api/admin/shipments`, {
+      headers: { Cookie: cookie }
+    });
+    assert.equal(response.status, 200);
+  } finally {
+    if (secondServer.exitCode === null) {
+      secondServer.kill();
+      await new Promise((resolve) => secondServer.once("exit", resolve));
+    }
+  }
 });

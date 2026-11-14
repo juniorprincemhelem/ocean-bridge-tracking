@@ -2,8 +2,14 @@
   "name": "ocean-bridge-tracking",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server.mjs",
     "test": "node --test"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.41.0"
   }
 }

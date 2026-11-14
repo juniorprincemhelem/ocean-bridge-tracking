@@ -1,0 +1,13 @@
+{
+  "framework": null,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "data/shipments.example.json"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.js?__path=/api/:path*" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/:path*", "destination": "/api/index.js?__path=/:path*" }
+  ]
+}
