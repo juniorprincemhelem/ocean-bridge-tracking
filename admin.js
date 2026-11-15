@@ -246,7 +246,8 @@ function updatePaymentValues() {
   else if (selectedStatus === "Paid") amountPaid = total;
   else if (selectedStatus === "Pending") amountPaid = 0;
   else amountPaid = Math.min(Math.max(amountPaid, 0), total);
-  amountPaidInput.value = amountPaid.toFixed(2);
+  // Keep the user's live input untouched while they type. Reformatting this
+  // field on every keystroke resets the caret and makes amounts hard to enter.
   return { total, amountPaid, amountPending: Math.max(total - amountPaid, 0) };
 }
 
@@ -326,12 +327,19 @@ receiptForm.addEventListener("input", (event) => {
 });
 receiptForm.addEventListener("change", (event) => {
   if (event.target === paymentStatusInput) {
-    if (paymentStatusInput.value === "Partially Paid" && Number(amountPaidInput.value) === 0 && receiptTotal() > 0) {
-      amountPaidInput.value = (receiptTotal() / 2).toFixed(2);
+    const total = receiptTotal();
+    if (paymentStatusInput.value === "Paid") {
+      amountPaidInput.value = total.toFixed(2);
+    } else if (paymentStatusInput.value === "Pending") {
+      amountPaidInput.value = "0";
+    } else if (total > 0) {
+      const currentPaid = Number(amountPaidInput.value || 0);
+      amountPaidInput.value = Math.min(Math.max(currentPaid || total / 2, 0), total).toFixed(2);
     }
   } else if (event.target === amountPaidInput) {
     const total = receiptTotal();
-    const paid = Number(amountPaidInput.value || 0);
+    const paid = Math.min(Math.max(Number(amountPaidInput.value || 0), 0), total);
+    amountPaidInput.value = paid.toFixed(2);
     paymentStatusInput.value = paid <= 0 ? "Pending" : paid >= total ? "Paid" : "Partially Paid";
   }
   updateReceiptPreview();
