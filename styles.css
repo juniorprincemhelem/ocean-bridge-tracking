@@ -211,10 +211,25 @@ a { color: inherit; text-decoration: none; }
   .mobile-menu { position: relative; display: block; }
   .mobile-menu summary { padding: 10px 16px; border-radius: 999px; color: #fff; background: #063b8c; font-weight: 600; cursor: pointer; list-style: none; }
   .mobile-menu summary::-webkit-details-marker { display: none; }
-  .mobile-menu nav { position: absolute; top: calc(100% + 10px); right: 0; display: grid; min-width: 190px; padding: 8px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 8px; background: #fff; box-shadow: 0 12px 28px rgba(5, 28, 62, .18); color: var(--ink); }
-  .mobile-menu nav a { padding: 10px 12px; }
-  .mobile-menu[open] nav { animation: mobile-menu-enter .18s ease-out both; }
-  @keyframes mobile-menu-enter { from { opacity: 0; transform: translateY(-7px); } to { opacity: 1; transform: translateY(0); } }
+  .mobile-menu nav { position: absolute; top: calc(100% + 10px); right: 0; display: grid; min-width: 190px; padding: 8px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 8px; background: #fff; box-shadow: 0 12px 28px rgba(5, 28, 62, .18); color: var(--ink); transform-origin: top right; }
+  .mobile-menu nav a { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border-radius: 7px; font-weight: 500; transition: color .2s ease, background .2s ease, transform .2s ease, padding .2s ease; -webkit-tap-highlight-color: transparent; }
+  .mobile-menu nav a::after { content: "›"; color: #0a5cff; opacity: 0; transform: translateX(-5px); transition: opacity .2s ease, transform .2s ease; }
+  .mobile-menu nav a:hover, .mobile-menu nav a:focus-visible { padding-left: 16px; background: #edf5ff; color: #06449f; outline: none; }
+  .mobile-menu nav a:hover::after, .mobile-menu nav a:focus-visible::after { opacity: 1; transform: translateX(0); }
+  .mobile-menu nav a:active { transform: scale(.97); background: #dcecff; }
+  .mobile-menu summary { transition: transform .2s ease, background .2s ease, box-shadow .2s ease; -webkit-tap-highlight-color: transparent; }
+  .mobile-menu summary:active { transform: scale(.95); background: #052f74; box-shadow: 0 3px 10px rgba(0, 20, 55, .22); }
+  .mobile-menu[open] nav { animation: mobile-menu-enter .24s cubic-bezier(.2,.8,.2,1) both; }
+  .mobile-menu[open] nav a { animation: mobile-link-enter .28s ease both; }
+  .mobile-menu[open] nav a:nth-child(1) { animation-delay: .025s; }
+  .mobile-menu[open] nav a:nth-child(2) { animation-delay: .05s; }
+  .mobile-menu[open] nav a:nth-child(3) { animation-delay: .075s; }
+  .mobile-menu[open] nav a:nth-child(4) { animation-delay: .1s; }
+  .mobile-menu[open] nav a:nth-child(5) { animation-delay: .125s; }
+  .mobile-menu[open] nav a:nth-child(6) { animation-delay: .15s; }
+  .mobile-menu[open] nav a:nth-child(7) { animation-delay: .175s; }
+  @keyframes mobile-menu-enter { from { opacity: 0; transform: translateY(-9px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes mobile-link-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
   .hero { min-height: 760px; min-height: 100svh; background-image: linear-gradient(90deg, rgba(0, 48, 117, .68), rgba(0, 51, 120, .38) 65%, rgba(0, 45, 99, .12)), url("./hero.png"); background-position: 60% center; }
   .hero-content { align-items: center; padding-top: 108px; padding-bottom: 20px; }
   .hero-copy { width: 100%; }
