@@ -183,6 +183,7 @@ const chargeList = document.getElementById("receipt-charge-list");
 const currencyInput = document.getElementById("receipt-currency");
 const paymentStatusInput = document.getElementById("receipt-payment-status");
 const amountPaidInput = document.getElementById("receipt-paid");
+const amountPendingInput = document.getElementById("receipt-pending");
 
 function showAdminView(view) {
   const isReceiptView = view === "receipt";
@@ -239,16 +240,11 @@ function receiptTotal() {
 }
 
 function updatePaymentValues() {
-  const total = receiptTotal();
-  const selectedStatus = paymentStatusInput.value;
-  let amountPaid = Number(amountPaidInput.value || 0);
-  if (total <= 0) amountPaid = 0;
-  else if (selectedStatus === "Paid") amountPaid = total;
-  else if (selectedStatus === "Pending") amountPaid = 0;
-  else amountPaid = Math.min(Math.max(amountPaid, 0), total);
-  // Keep the user's live input untouched while they type. Reformatting this
-  // field on every keystroke resets the caret and makes amounts hard to enter.
-  return { total, amountPaid, amountPending: Math.max(total - amountPaid, 0) };
+  return {
+    total: receiptTotal(),
+    amountPaid: Number(amountPaidInput.value || 0),
+    amountPending: Number(amountPendingInput.value || 0)
+  };
 }
 
 function currencyText(amount) {
@@ -309,41 +305,15 @@ function updateReceiptPreview() {
   document.getElementById("preview-total").textContent = currencyText(payment.total);
   document.getElementById("preview-paid").textContent = currencyText(payment.amountPaid);
   document.getElementById("preview-pending").textContent = currencyText(payment.amountPending);
-  const calculatedStatus = payment.total <= 0 ? "NOT PRICED" : payment.amountPending === 0 ? "PAID" : payment.amountPaid > 0 ? "PARTIALLY PAID" : "PENDING";
-  document.getElementById("preview-payment-status").textContent = calculatedStatus;
+  document.getElementById("preview-payment-status").textContent = paymentStatusInput.value.toUpperCase();
   document.getElementById("preview-pending-label").textContent = payment.total <= 0 ? "ADD CHARGES" : payment.amountPending > 0 ? "DUE" : "SETTLED";
 }
 
 shipmentsTab.addEventListener("click", () => showAdminView("shipments"));
 receiptTab.addEventListener("click", () => showAdminView("receipt"));
 document.getElementById("add-charge").addEventListener("click", () => addReceiptCharge());
-receiptForm.addEventListener("input", (event) => {
-  if (event.target === amountPaidInput) {
-    const total = receiptTotal();
-    const amountPaid = Number(amountPaidInput.value || 0);
-    paymentStatusInput.value = amountPaid <= 0 ? "Pending" : amountPaid >= total ? "Paid" : "Partially Paid";
-  }
-  updateReceiptPreview();
-});
-receiptForm.addEventListener("change", (event) => {
-  if (event.target === paymentStatusInput) {
-    const total = receiptTotal();
-    if (paymentStatusInput.value === "Paid") {
-      amountPaidInput.value = total.toFixed(2);
-    } else if (paymentStatusInput.value === "Pending") {
-      amountPaidInput.value = "0";
-    } else if (total > 0) {
-      const currentPaid = Number(amountPaidInput.value || 0);
-      amountPaidInput.value = Math.min(Math.max(currentPaid || total / 2, 0), total).toFixed(2);
-    }
-  } else if (event.target === amountPaidInput) {
-    const total = receiptTotal();
-    const paid = Math.min(Math.max(Number(amountPaidInput.value || 0), 0), total);
-    amountPaidInput.value = paid.toFixed(2);
-    paymentStatusInput.value = paid <= 0 ? "Pending" : paid >= total ? "Paid" : "Partially Paid";
-  }
-  updateReceiptPreview();
-});
+receiptForm.addEventListener("input", updateReceiptPreview);
+receiptForm.addEventListener("change", updateReceiptPreview);
 
 receiptForm.addEventListener("submit", (event) => {
   event.preventDefault();
