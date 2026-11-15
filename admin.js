@@ -306,7 +306,7 @@ function updateReceiptPreview() {
   document.getElementById("preview-paid").textContent = currencyText(payment.amountPaid);
   document.getElementById("preview-pending").textContent = currencyText(payment.amountPending);
   document.getElementById("preview-payment-status").textContent = paymentStatusInput.value.toUpperCase();
-  document.getElementById("preview-pending-label").textContent = payment.total <= 0 ? "ADD CHARGES" : payment.amountPending > 0 ? "DUE" : "SETTLED";
+  document.getElementById("preview-pending-label").textContent = payment.total <= 0 ? "" : payment.amountPending > 0 ? "DUE" : "SETTLED";
 }
 
 shipmentsTab.addEventListener("click", () => showAdminView("shipments"));
