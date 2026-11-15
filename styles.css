@@ -158,6 +158,9 @@ a { color: inherit; text-decoration: none; }
 .contact-icon-link { display: inline-grid; width: 38px; aspect-ratio: 1; place-items: center; border: 1px solid rgba(201, 214, 242, .55); border-radius: 50%; color: #fff; transition: background .2s, color .2s; }
 .contact-icon-link:hover { background: #fff; color: var(--navy); }
 .contact-icon-link svg { width: 18px; height: 18px; }
+.support-phone-link { display: inline-flex; align-items: center; gap: 9px; color: #fff; font-weight: 500; white-space: nowrap; }
+.support-phone-link svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.support-phone-link:hover { color: #7de4ff; }
 #track, #services, #about, #coverage, #faq, #contact { scroll-margin-top: 16px; }
 .service-area { padding: 64px 0; background: #eaf4fb; }
 .service-area-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); align-items: center; gap: 48px; }
