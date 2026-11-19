@@ -18,6 +18,7 @@ let shipmentSearchTerm = "";
 let shipmentStatusFilter = "";
 let activeShipmentId = "";
 let shipmentDirty = false;
+let activeReceiptId = "";
 function updateShipmentSaveState() {
   const state = document.getElementById("shipment-save-state");
   if (!state) return;
@@ -347,7 +348,10 @@ function showAdminView(view) {
   receiptTab.classList.toggle("is-active", isReceiptView);
   shipmentsTab.setAttribute("aria-selected", String(!isReceiptView));
   receiptTab.setAttribute("aria-selected", String(isReceiptView));
-  if (isReceiptView) updateReceiptPreview();
+  if (isReceiptView) {
+    updateReceiptPreview();
+    loadReceiptHistory();
+  }
 }
 
 function localDateValue() {
@@ -472,8 +476,120 @@ receiptForm.addEventListener("change", updateReceiptPreview);
 receiptForm.addEventListener("submit", (event) => {
   event.preventDefault();
   updateReceiptPreview();
-  document.getElementById("receipt-form-status").textContent = "Receipt preview updated. Choose Print / Save PDF to export it.";
+  document.getElementById("receipt-form-status").textContent = "Receipt preview updated. Save it to keep a copy in receipt history, or print it as a PDF.";
 });
+
+function receiptPayload() {
+  const payload = Object.fromEntries(new FormData(receiptForm).entries());
+  payload.charges = receiptCharges();
+  return payload;
+}
+
+async function loadReceiptHistory() {
+  const list = document.getElementById("receipt-history-list");
+  list.replaceChildren();
+  try {
+    const receipts = await api("/api/admin/receipts");
+    const entries = Object.values(receipts).sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+    if (!entries.length) {
+      const empty = document.createElement("p");
+      empty.className = "receipt-history-empty";
+      empty.textContent = "No saved receipts yet. Complete the form and choose Save receipt.";
+      list.appendChild(empty);
+      return;
+    }
+    for (const receipt of entries) {
+      const row = document.createElement("div");
+      row.className = "receipt-history-item";
+      const details = document.createElement("div");
+      details.className = "receipt-history-details";
+      const number = document.createElement("strong");
+      number.textContent = receipt.receiptNumber || "Unnamed receipt";
+      const meta = document.createElement("span");
+      meta.textContent = [receipt.trackingNumber, receipt.consignee, receipt.receiptDate].filter(Boolean).join(" · ");
+      details.append(number, meta);
+      const actions = document.createElement("div");
+      actions.className = "receipt-history-actions";
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "button-secondary";
+      open.textContent = "Open";
+      open.addEventListener("click", () => populateReceipt(receipt));
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "button-danger";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Delete receipt ${receipt.receiptNumber}? This cannot be undone.`)) return;
+        try {
+          await api(`/api/admin/receipts/${encodeURIComponent(receipt.receiptNumber)}`, { method: "DELETE" });
+          if (activeReceiptId === receipt.receiptNumber) activeReceiptId = "";
+          await loadReceiptHistory();
+          document.getElementById("receipt-form-status").textContent = `Receipt ${receipt.receiptNumber} deleted.`;
+        } catch (error) {
+          document.getElementById("receipt-form-status").textContent = error.message;
+        }
+      });
+      actions.append(open, remove);
+      row.append(details, actions);
+      list.appendChild(row);
+    }
+  } catch (error) {
+    const failed = document.createElement("p");
+    failed.className = "receipt-history-empty";
+    failed.textContent = `Could not load saved receipts: ${error.message}`;
+    list.appendChild(failed);
+  }
+}
+
+function populateReceipt(receipt) {
+  for (const [key, value] of Object.entries(receipt)) {
+    if (key === "charges" || key === "updatedAt") continue;
+    const field = receiptForm.elements.namedItem(key);
+    if (field) field.value = value ?? "";
+  }
+  chargeList.replaceChildren();
+  (receipt.charges || []).forEach((charge) => addReceiptCharge(charge.name, charge.amount));
+  activeReceiptId = receipt.receiptNumber || "";
+  updateReceiptPreview();
+  document.getElementById("receipt-form-status").textContent = `Loaded receipt ${activeReceiptId}. You can review, update and save it again.`;
+  receiptForm.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function saveCurrentReceipt() {
+  if (!receiptForm.reportValidity()) return;
+  if (receiptTotal() <= 0) {
+    document.getElementById("receipt-form-status").textContent = "Add at least one charge with an amount greater than zero before saving.";
+    return;
+  }
+  const button = document.getElementById("save-receipt");
+  button.disabled = true;
+  try {
+    const payload = receiptPayload();
+    await api("/api/admin/receipts", { method: "POST", body: JSON.stringify(payload) });
+    activeReceiptId = payload.receiptNumber;
+    document.getElementById("receipt-form-status").textContent = `Receipt ${activeReceiptId} saved successfully.`;
+    await loadReceiptHistory();
+  } catch (error) {
+    document.getElementById("receipt-form-status").textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function resetReceiptForm() {
+  receiptForm.reset();
+  activeReceiptId = "";
+  document.getElementById("receipt-number").value = newReceiptNumber();
+  document.getElementById("receipt-date").value = localDateValue();
+  chargeList.replaceChildren();
+  ["Transportation charge", "Fuel surcharge", "Handling & packaging", "Documentation fee"].forEach((name) => addReceiptCharge(name));
+  updateReceiptPreview();
+  document.getElementById("receipt-form-status").textContent = "New receipt ready. Complete the details, then save it to history.";
+}
+
+document.getElementById("save-receipt").addEventListener("click", saveCurrentReceipt);
+document.getElementById("new-receipt").addEventListener("click", resetReceiptForm);
 
 document.getElementById("print-receipt").addEventListener("click", () => {
   if (!receiptForm.reportValidity()) return;
@@ -486,10 +602,7 @@ document.getElementById("print-receipt").addEventListener("click", () => {
 });
 
 function initializeReceipt() {
-  document.getElementById("receipt-number").value = newReceiptNumber();
-  document.getElementById("receipt-date").value = localDateValue();
-  ["Transportation charge", "Fuel surcharge", "Handling & packaging", "Documentation fee"].forEach((name) => addReceiptCharge(name));
-  updateReceiptPreview();
+  resetReceiptForm();
 }
 
 initializeReceipt();
