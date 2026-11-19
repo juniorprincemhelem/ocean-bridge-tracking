@@ -69,6 +69,54 @@ function renderShipment(id = "") {
   deleteButton.hidden = creating;
 }
 
+function renderShipmentSearchResults() {
+  const results = document.getElementById("shipment-search-results");
+  results.replaceChildren();
+  const query = shipmentSearchTerm;
+  if (!query) {
+    results.hidden = true;
+    return;
+  }
+
+  const matches = Object.entries(shipments)
+    .filter(([id, shipment]) => [id, shipment.origin, shipment.destination, shipment.status].join(" ").toLowerCase().includes(query))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(0, 8);
+
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.className = "shipment-search-empty";
+    empty.textContent = "No matching shipments found.";
+    results.appendChild(empty);
+  } else {
+    for (const [id, shipment] of matches) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "shipment-search-result";
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", String(id === activeShipmentId));
+      const tracking = document.createElement("strong");
+      tracking.textContent = id;
+      const route = document.createElement("span");
+      route.textContent = [shipment.origin, shipment.destination].filter(Boolean).join(" → ") || "Route not provided";
+      const status = document.createElement("small");
+      status.textContent = shipment.status || "Status unavailable";
+      button.append(tracking, route, status);
+      button.addEventListener("click", () => {
+        shipmentSearchTerm = id.toLowerCase();
+        document.getElementById("shipment-search").value = id;
+        renderShipmentOptions(id);
+        shipmentSelect.value = id;
+        renderShipment(id);
+        results.hidden = true;
+        showMessage(`Loaded shipment ${id}.`, "success");
+      });
+      results.appendChild(button);
+    }
+  }
+  results.hidden = false;
+}
+
 function updateShipmentOverview() {
   const records = Object.values(shipments);
   const count = (status) => records.filter((shipment) => String(shipment.status || "").toLowerCase() === status).length;
@@ -130,13 +178,25 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 shipmentSelect.addEventListener("change", () => {
-  if (shipmentSelect.value) renderShipment(shipmentSelect.value);
+  if (shipmentSelect.value) {
+    renderShipment(shipmentSelect.value);
+    document.getElementById("shipment-search").value = shipmentSelect.value;
+    shipmentSearchTerm = shipmentSelect.value.toLowerCase();
+    document.getElementById("shipment-search-results").hidden = true;
+  }
 });
 document.getElementById("shipment-search").addEventListener("input", (event) => {
   shipmentSearchTerm = event.target.value.trim().toLowerCase();
   renderShipmentOptions(activeShipmentId);
+  renderShipmentSearchResults();
 });
-document.getElementById("new-shipment").addEventListener("click", () => renderShipment(""));
+document.getElementById("new-shipment").addEventListener("click", () => {
+  renderShipment("");
+  document.getElementById("shipment-search").value = "";
+  shipmentSearchTerm = "";
+  document.getElementById("shipment-search-results").hidden = true;
+  renderShipmentOptions("");
+});
 document.getElementById("add-event").addEventListener("click", () => addEventRow());
 
 document.getElementById("logout").addEventListener("click", async () => {
