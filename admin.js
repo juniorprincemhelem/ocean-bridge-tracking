@@ -16,6 +16,19 @@ let shipments = {};
 let creating = false;
 let shipmentSearchTerm = "";
 let activeShipmentId = "";
+let shipmentDirty = false;
+
+function confirmDiscardShipmentChanges() {
+  return !shipmentDirty || window.confirm("You have unsaved shipment changes. Leave this record without saving?");
+}
+
+function restoreActiveShipmentSelection() {
+  document.getElementById("shipment-search").value = activeShipmentId;
+  shipmentSearchTerm = activeShipmentId.toLowerCase();
+  renderShipmentOptions(activeShipmentId);
+  shipmentSelect.value = activeShipmentId;
+  document.getElementById("shipment-search-results").hidden = true;
+}
 
 function showMessage(text, kind = "error") {
   message.textContent = text;
@@ -48,12 +61,16 @@ function addEventRow(event = {}) {
     const input = row.querySelector(`[data-field="${field}"]`);
     if (input) input.value = String(value);
   }
-  row.querySelector(".remove-event").addEventListener("click", () => row.remove());
+  row.querySelector(".remove-event").addEventListener("click", () => {
+    row.remove();
+    shipmentDirty = true;
+  });
   eventList.appendChild(row);
 }
 
 function renderShipment(id = "") {
   activeShipmentId = id;
+  shipmentDirty = false;
   const shipment = shipments[id];
   creating = !shipment;
   shipmentForm.hidden = false;
@@ -103,6 +120,10 @@ function renderShipmentSearchResults() {
       status.textContent = shipment.status || "Status unavailable";
       button.append(tracking, route, status);
       button.addEventListener("click", () => {
+        if (!confirmDiscardShipmentChanges()) {
+          restoreActiveShipmentSelection();
+          return;
+        }
         shipmentSearchTerm = id.toLowerCase();
         document.getElementById("shipment-search").value = id;
         renderShipmentOptions(id);
@@ -177,8 +198,15 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+shipmentForm.addEventListener("input", () => { shipmentDirty = true; });
+shipmentForm.addEventListener("change", () => { shipmentDirty = true; });
+
 shipmentSelect.addEventListener("change", () => {
   if (shipmentSelect.value) {
+    if (!confirmDiscardShipmentChanges()) {
+      restoreActiveShipmentSelection();
+      return;
+    }
     renderShipment(shipmentSelect.value);
     document.getElementById("shipment-search").value = shipmentSelect.value;
     shipmentSearchTerm = shipmentSelect.value.toLowerCase();
@@ -191,15 +219,20 @@ document.getElementById("shipment-search").addEventListener("input", (event) => 
   renderShipmentSearchResults();
 });
 document.getElementById("new-shipment").addEventListener("click", () => {
+  if (!confirmDiscardShipmentChanges()) return;
   renderShipment("");
   document.getElementById("shipment-search").value = "";
   shipmentSearchTerm = "";
   document.getElementById("shipment-search-results").hidden = true;
   renderShipmentOptions("");
 });
-document.getElementById("add-event").addEventListener("click", () => addEventRow());
+document.getElementById("add-event").addEventListener("click", () => {
+  addEventRow();
+  shipmentDirty = true;
+});
 
 document.getElementById("logout").addEventListener("click", async () => {
+  if (!confirmDiscardShipmentChanges()) return;
   try {
     await api("/api/admin/logout", { method: "POST", body: "{}" });
   } finally {
