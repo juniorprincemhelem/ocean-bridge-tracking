@@ -102,6 +102,13 @@
       </form>
       </section>
       <section class="receipt-view" id="receipt-view" role="tabpanel" aria-labelledby="receipt-tab" hidden>
+        <section class="receipt-history" aria-labelledby="receipt-history-title">
+          <div class="receipt-history-heading">
+            <div><h2 id="receipt-history-title">Saved receipts</h2><p>Open a saved receipt to review, update or print it.</p></div>
+            <button class="button-secondary" id="new-receipt" type="button">New receipt</button>
+          </div>
+          <div class="receipt-history-list" id="receipt-history-list"><p class="receipt-history-empty">Loading saved receipts…</p></div>
+        </section>
         <div class="receipt-workspace">
           <form id="receipt-form" class="receipt-form">
             <div class="receipt-form-heading">
@@ -158,6 +165,7 @@
             </div>
             <div class="receipt-actions">
               <button type="submit">Update receipt preview</button>
+              <button id="save-receipt" type="button">Save receipt</button>
               <button class="button-secondary" id="print-receipt" type="button">Print / Save PDF</button>
             </div>
             <p class="receipt-form-status" id="receipt-form-status" role="status" aria-live="polite"></p>
