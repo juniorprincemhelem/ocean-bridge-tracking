@@ -543,3 +543,249 @@ a { color: inherit; text-decoration: none; }
   }
 }
 
+/* Mobile shipment-tracking layout */
+@media (max-width: 800px) {
+  .tracking-active .header-inner {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tracking-active .hero-content {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .tracking-active .hero-copy {
+    width: 100%;
+  }
+
+  .tracking-active .track-box {
+    width: 100%;
+  }
+
+  .result {
+    padding-top: 12px;
+    padding-bottom: 18px;
+  }
+
+  .result-card {
+    border-radius: 10px;
+  }
+
+  .result-head {
+    align-items: start;
+  }
+
+  .result-status {
+    min-width: 0;
+  }
+
+  .result-status .muted {
+    overflow-wrap: anywhere;
+  }
+
+  .result-progress {
+    min-width: 0;
+    padding: 16px;
+  }
+
+  .panel-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .timeline {
+    min-width: 0;
+  }
+
+  .timeline li {
+    min-width: 0;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .timeline-details {
+    min-width: 0;
+  }
+
+  .timeline-details strong,
+  .timeline-details > span {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
+  .timeline-time {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
+  .result-aside {
+    gap: 10px;
+  }
+
+  .map-card,
+  #map {
+    min-height: 200px;
+    height: 220px;
+  }
+
+  .shipment-info {
+    padding: 14px;
+  }
+
+  .shipment-info dl > div {
+    grid-template-columns: minmax(90px, .75fr) minmax(0, 1.25fr);
+    gap: 8px;
+    overflow-wrap: anywhere;
+  }
+
+  .care-banner {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .care-banner > div {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tracking-active .header-inner {
+    height: 58px;
+  }
+
+  .tracking-active .logo img {
+    width: clamp(138px, 42vw, 168px);
+    max-height: 38px;
+  }
+
+  .tracking-active .hero {
+    background-position: 58% center;
+  }
+
+  .tracking-active .hero-content {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .tracking-active .hero h1 {
+    font-size: clamp(1.45rem, 6.5vw, 1.7rem);
+  }
+
+  .tracking-active .sub {
+    font-size: .84rem;
+  }
+
+  .tracking-active .track-box {
+    min-height: 46px;
+  }
+
+  .tracking-active .track-box button {
+    min-height: 36px;
+  }
+
+  .result {
+    width: 94%;
+  }
+
+  .result-head {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 9px;
+    padding: 13px;
+  }
+
+  .shipment-icon {
+    width: 36px;
+  }
+
+  .shipment-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .shipment-identity h2 {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .result-status {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    margin-left: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+
+  .result-progress {
+    padding: 13px 11px 15px;
+  }
+
+  .timeline::before {
+    left: 13px;
+  }
+
+  .timeline li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 8px;
+    row-gap: 3px;
+    min-height: 0;
+    padding: 9px 5px 9px 0;
+  }
+
+  .timeline-marker {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    width: 27px;
+  }
+
+  .timeline-details {
+    grid-column: 2;
+  }
+
+  .timeline-details strong {
+    font-size: .82rem;
+  }
+
+  .timeline-details > span {
+    font-size: .72rem;
+  }
+
+  .timeline-time {
+    grid-column: 2;
+    text-align: left;
+    font-size: .68rem;
+  }
+
+  .result-aside {
+    padding: 0 11px 11px;
+  }
+
+  .map-card,
+  #map {
+    height: 205px;
+    min-height: 205px;
+  }
+
+  .shipment-info dl > div {
+    grid-template-columns: minmax(82px, .8fr) minmax(0, 1.2fr);
+    font-size: .7rem;
+  }
+
+  .care-banner {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .care-banner strong {
+    font-size: .8rem;
+  }
+
+  .care-banner p {
+    font-size: .68rem;
+  }
+}
+
