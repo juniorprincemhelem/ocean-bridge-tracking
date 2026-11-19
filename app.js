@@ -136,6 +136,13 @@ function showResult(id, s) {
   const hasArrived = normalizedStatus === "arrived at destination";
   const isDelivered = normalizedStatus === "delivered";
   badge.className = "badge" + (isDelivered ? " delivered" : hasArrived ? " arrived" : "");
+  const statusDescription = document.getElementById("status-description");
+  const statusMessages = {
+    "in transit": "Your shipment is moving through the delivery network. New details will appear when the next shipment scan is recorded.",
+    "arrived at destination": "Your shipment has reached its destination location. It is awaiting the next local handling or delivery step.",
+    "delivered": "The shipment has been marked as delivered. Check the latest tracking event for its recorded delivery details."
+  };
+  statusDescription.textContent = statusMessages[normalizedStatus] || "This is the latest shipment status recorded by Ocean Bridge. Check the tracking timeline below for its recorded updates.";
 
   document.getElementById("res-location").textContent = current.location;
   document.getElementById("res-updated").textContent = "Last updated: " + current.time;
