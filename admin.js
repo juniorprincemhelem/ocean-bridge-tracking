@@ -14,6 +14,7 @@ const message = document.getElementById("admin-message");
 const deleteButton = document.getElementById("delete-shipment");
 let shipments = {};
 let creating = false;
+let shipmentSearchTerm = "";
 
 function showMessage(text, kind = "error") {
   message.textContent = text;
@@ -66,17 +67,36 @@ function renderShipment(id = "") {
   deleteButton.hidden = creating;
 }
 
+function updateShipmentOverview() {
+  const records = Object.values(shipments);
+  const count = (status) => records.filter((shipment) => String(shipment.status || "").toLowerCase() === status).length;
+  document.getElementById("overview-total").textContent = String(records.length);
+  document.getElementById("overview-transit").textContent = String(count("in transit"));
+  document.getElementById("overview-arrived").textContent = String(count("arrived at destination"));
+  document.getElementById("overview-delivered").textContent = String(count("delivered"));
+}
+
 function renderShipmentOptions(selectedId = "") {
   shipmentSelect.replaceChildren();
-  for (const id of Object.keys(shipments).sort()) {
+  const entries = Object.entries(shipments).sort(([a], [b]) => a.localeCompare(b));
+  for (const [id, shipment] of entries) {
+    const searchable = [id, shipment.origin, shipment.destination, shipment.status].join(" ").toLowerCase();
+    if (shipmentSearchTerm && !searchable.includes(shipmentSearchTerm)) continue;
     const option = document.createElement("option");
     option.value = id;
     option.textContent = id;
     shipmentSelect.appendChild(option);
   }
-  shipmentSelect.disabled = Object.keys(shipments).length === 0;
-  if (selectedId && shipments[selectedId]) shipmentSelect.value = selectedId;
+  shipmentSelect.disabled = shipmentSelect.options.length === 0;
+  if (selectedId && [...shipmentSelect.options].some((option) => option.value === selectedId)) shipmentSelect.value = selectedId;
   else if (shipmentSelect.options.length) shipmentSelect.selectedIndex = 0;
+  else {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No matching shipments";
+    shipmentSelect.appendChild(option);
+  }
+  updateShipmentOverview();
 }
 
 async function loadShipments(selectedId = "") {
@@ -106,7 +126,13 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-shipmentSelect.addEventListener("change", () => renderShipment(shipmentSelect.value));
+shipmentSelect.addEventListener("change", () => {
+  if (shipmentSelect.value) renderShipment(shipmentSelect.value);
+});
+document.getElementById("shipment-search").addEventListener("input", (event) => {
+  shipmentSearchTerm = event.target.value.trim().toLowerCase();
+  renderShipmentOptions(shipmentSelect.value);
+});
 document.getElementById("new-shipment").addEventListener("click", () => renderShipment(""));
 document.getElementById("add-event").addEventListener("click", () => addEventRow());
 
