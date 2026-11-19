@@ -43,9 +43,12 @@
         </div>
       </section>
       <div class="editor-toolbar">
-        <label class="shipment-search-label" for="shipment-search">Find shipment
-          <input id="shipment-search" type="search" placeholder="Search tracking ID, origin or destination" autocomplete="off">
-        </label>
+        <div class="shipment-search-wrap">
+          <label class="shipment-search-label" for="shipment-search">Find shipment
+            <input id="shipment-search" type="search" placeholder="Search tracking ID, origin or destination" autocomplete="off" aria-controls="shipment-search-results" aria-autocomplete="list">
+          </label>
+          <div class="shipment-search-results" id="shipment-search-results" role="listbox" aria-label="Matching shipments" hidden></div>
+        </div>
         <label for="shipment-select">Shipment record</label>
         <select id="shipment-select"></select>
         <button class="button-secondary" id="new-shipment" type="button">New shipment</button>
