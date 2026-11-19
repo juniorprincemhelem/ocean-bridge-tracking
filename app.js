@@ -15,6 +15,23 @@ mobileMenu.querySelector("nav").addEventListener("click", (event) => {
   if (event.target.closest("a")) mobileMenu.open = false;
 });
 
+const copyTrackingButton = document.getElementById("copy-tracking");
+copyTrackingButton.addEventListener("click", async () => {
+  const trackingNumber = document.getElementById("res-id").textContent;
+  if (!trackingNumber) return;
+  try {
+    await navigator.clipboard.writeText(trackingNumber);
+    copyTrackingButton.textContent = "Copied";
+    copyTrackingButton.classList.add("copied");
+  } catch {
+    copyTrackingButton.textContent = "Select number";
+  }
+  window.setTimeout(() => {
+    copyTrackingButton.textContent = "Copy";
+    copyTrackingButton.classList.remove("copied");
+  }, 1800);
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = input.value.trim().toUpperCase().replace(/\s+/g, "");
