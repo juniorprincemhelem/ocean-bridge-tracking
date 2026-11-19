@@ -36,10 +36,10 @@
       <section class="dashboard-overview" aria-label="Shipment overview">
         <div class="overview-heading"><div><h2>Overview</h2><p>Live summary of your shipment records</p></div></div>
         <div class="overview-grid">
-          <article class="overview-card"><span>Total shipments</span><strong id="overview-total">0</strong></article>
-          <article class="overview-card"><span>In transit</span><strong id="overview-transit">0</strong></article>
-          <article class="overview-card"><span>At destination</span><strong id="overview-arrived">0</strong></article>
-          <article class="overview-card"><span>Delivered</span><strong id="overview-delivered">0</strong></article>
+          <button class="overview-card" type="button" data-status-filter="" aria-pressed="true"><span>Total shipments</span><strong id="overview-total">0</strong><small>View all</small></button>
+          <button class="overview-card" type="button" data-status-filter="in transit" aria-pressed="false"><span>In transit</span><strong id="overview-transit">0</strong><small>View shipments</small></button>
+          <button class="overview-card" type="button" data-status-filter="arrived at destination" aria-pressed="false"><span>At destination</span><strong id="overview-arrived">0</strong><small>View shipments</small></button>
+          <button class="overview-card" type="button" data-status-filter="delivered" aria-pressed="false"><span>Delivered</span><strong id="overview-delivered">0</strong><small>View shipments</small></button>
         </div>
       </section>
       <div class="editor-toolbar">
