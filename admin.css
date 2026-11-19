@@ -150,3 +150,22 @@ input:focus, select:focus { outline: 2px solid rgba(7, 86, 175, .25); border-col
   .receipt-charge-editor { grid-template-columns: minmax(0, 1fr) 100px; }
   .receipt-charge-editor button { grid-column: 1 / -1; justify-self: start; }
 }
+
+
+/* Shipment dashboard overview */
+.dashboard-overview { margin: 4px 0 22px; }
+.overview-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 12px; }
+.overview-heading h2 { margin: 0 0 2px; color: var(--navy); font-size: 1.1rem; }
+.overview-heading p { margin: 0; color: var(--muted); font-size: .78rem; }
+.overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.overview-card { min-width: 0; padding: 15px 16px; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
+.overview-card span { display: block; color: var(--muted); font-size: .74rem; font-weight: 500; }
+.overview-card strong { display: block; margin-top: 4px; color: var(--navy); font-size: 1.65rem; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+.editor-toolbar .shipment-search-label { width: min(100%, 300px); margin-right: 0; }
+.editor-toolbar .shipment-search-label input { min-height: 42px; font-size: .8rem; }
+@media (max-width: 700px) {
+  .overview-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .overview-card { padding: 12px; }
+  .overview-card strong { font-size: 1.4rem; }
+  .editor-toolbar .shipment-search-label { width: 100%; }
+}
