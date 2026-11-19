@@ -115,7 +115,10 @@ function showResult(id, s) {
   document.getElementById("res-id").textContent = id;
   const badge = document.getElementById("res-status");
   badge.textContent = s.status;
-  badge.className = "badge" + (s.status.toLowerCase() === "delivered" ? " delivered" : "");
+  const normalizedStatus = s.status.toLowerCase();
+  const hasArrived = normalizedStatus === "arrived at destination";
+  const isDelivered = normalizedStatus === "delivered";
+  badge.className = "badge" + (isDelivered ? " delivered" : hasArrived ? " arrived" : "");
 
   document.getElementById("res-location").textContent = current.location;
   document.getElementById("res-updated").textContent = "Last updated: " + current.time;
@@ -141,13 +144,15 @@ function showResult(id, s) {
   const events = [...s.history].reverse();
   events.forEach((h, index) => {
     const li = document.createElement("li");
-    const isCurrent = index === events.length - 1 && s.status.toLowerCase() !== "delivered";
-    li.className = isCurrent ? "timeline-current" : "timeline-complete";
+    const isLastEvent = index === events.length - 1;
+    const isDestinationArrival = isLastEvent && hasArrived;
+    const isCurrent = isLastEvent && !hasArrived && !isDelivered;
+    li.className = isDestinationArrival ? "timeline-destination" : isCurrent ? "timeline-current" : "timeline-complete";
 
     const marker = document.createElement("span");
     marker.className = "timeline-marker";
     marker.setAttribute("aria-hidden", "true");
-    marker.textContent = isCurrent ? "✈" : "✓";
+    marker.textContent = isDestinationArrival ? "⌖" : isCurrent ? "✈" : "✓";
 
     const details = document.createElement("div");
     details.className = "timeline-details";
@@ -165,7 +170,7 @@ function showResult(id, s) {
   });
   document.getElementById("progress-count").textContent = `${events.length} ${events.length === 1 ? "update" : "updates"}`;
 
-  if (s.status.toLowerCase() !== "delivered") {
+  if (!hasArrived && !isDelivered) {
     const pending = document.createElement("li");
     pending.className = "timeline-pending";
     const marker = document.createElement("span");
