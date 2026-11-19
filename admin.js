@@ -15,6 +15,7 @@ const deleteButton = document.getElementById("delete-shipment");
 let shipments = {};
 let creating = false;
 let shipmentSearchTerm = "";
+let shipmentStatusFilter = "";
 let activeShipmentId = "";
 let shipmentDirty = false;
 function updateShipmentSaveState() {
@@ -104,6 +105,7 @@ function renderShipmentSearchResults() {
   }
 
   const matches = Object.entries(shipments)
+    .filter(([id, shipment]) => !shipmentStatusFilter || String(shipment.status || "").toLowerCase() === shipmentStatusFilter)
     .filter(([id, shipment]) => [id, shipment.origin, shipment.destination, shipment.status].join(" ").toLowerCase().includes(query))
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(0, 8);
@@ -160,6 +162,7 @@ function renderShipmentOptions(selectedId = "") {
   const entries = Object.entries(shipments).sort(([a], [b]) => a.localeCompare(b));
   for (const [id, shipment] of entries) {
     const searchable = [id, shipment.origin, shipment.destination, shipment.status].join(" ").toLowerCase();
+    if (shipmentStatusFilter && String(shipment.status || "").toLowerCase() !== shipmentStatusFilter) continue;
     if (shipmentSearchTerm && !searchable.includes(shipmentSearchTerm)) continue;
     const option = document.createElement("option");
     option.value = id;
@@ -177,6 +180,9 @@ function renderShipmentOptions(selectedId = "") {
     shipmentSelect.appendChild(option);
   }
   updateShipmentOverview();
+  document.querySelectorAll("[data-status-filter]").forEach((card) => {
+    card.setAttribute("aria-pressed", String(card.dataset.statusFilter === shipmentStatusFilter));
+  });
 }
 
 async function loadShipments(selectedId = "") {
@@ -226,8 +232,25 @@ document.getElementById("shipment-search").addEventListener("input", (event) => 
   renderShipmentOptions(activeShipmentId);
   renderShipmentSearchResults();
 });
+
+document.querySelectorAll("[data-status-filter]").forEach((card) => {
+  card.addEventListener("click", () => {
+    if (!confirmDiscardShipmentChanges()) return;
+    shipmentStatusFilter = card.dataset.statusFilter;
+    shipmentSearchTerm = "";
+    document.getElementById("shipment-search").value = "";
+    document.getElementById("shipment-search-results").hidden = true;
+    renderShipmentOptions("");
+    const firstMatch = shipmentSelect.options.length && shipmentSelect.value ? shipmentSelect.value : "";
+    if (firstMatch) renderShipment(firstMatch);
+    else shipmentForm.hidden = true;
+    const label = card.querySelector("span").textContent.toLowerCase();
+    showMessage(firstMatch ? "Showing " + label + " shipments." : "No " + label + " records found.", "success");
+  });
+});
 document.getElementById("new-shipment").addEventListener("click", () => {
   if (!confirmDiscardShipmentChanges()) return;
+  shipmentStatusFilter = "";
   renderShipment("");
   document.getElementById("shipment-search").value = "";
   shipmentSearchTerm = "";
