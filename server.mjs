@@ -24,6 +24,8 @@ const redisUrl = hasUpstashPair ? upstashUrl : hasKvPair ? kvUrl : "";
 const redisToken = hasUpstashPair ? upstashToken : hasKvPair ? kvToken : "";
 const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
 const SHIPMENTS_KEY = "ocean-bridge:shipments";
+const RECEIPTS_KEY = "ocean-bridge:receipts";
+const RECEIPTS_FILE = path.join(DATA_DIR, "receipts.json");
 const SESSION_MAX_AGE = 8 * 60 * 60 * 1000;
 const loginAttempts = new Map();
 const statuses = new Set(["In Transit", "Arrived at Destination", "Delivered", "Exception", "Pending"]);
@@ -174,6 +176,62 @@ async function deleteShipment(id) {
   delete shipments[id];
   await writeShipments(shipments);
   return true;
+}
+
+async function readReceipts() {
+  if (redis) {
+    const records = await redis.hgetall(RECEIPTS_KEY);
+    return Object.fromEntries(Object.entries(records || {}).map(([id, receipt]) => [
+      id,
+      typeof receipt === "string" ? JSON.parse(receipt) : receipt
+    ]));
+  }
+  try {
+    return JSON.parse(await readFile(RECEIPTS_FILE, "utf8"));
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    return {};
+  }
+}
+
+async function saveReceipt(id, receipt) {
+  if (redis) {
+    await redis.hset(RECEIPTS_KEY, { [id]: JSON.stringify(receipt) });
+    return;
+  }
+  const receipts = await readReceipts();
+  receipts[id] = receipt;
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\\n`, "utf8");
+}
+
+async function deleteReceipt(id) {
+  if (redis) return (await redis.hdel(RECEIPTS_KEY, id)) > 0;
+  const receipts = await readReceipts();
+  if (!receipts[id]) return false;
+  delete receipts[id];
+  await mkdir(DATA_DIR, { recursive: true });
+  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\\n`, "utf8");
+  return true;
+}
+
+function validateReceipt(id, receipt) {
+  if (!/^[A-Za-z0-9-]{1,40}$/.test(id)) return "Receipt number may contain letters, numbers and hyphens only.";
+  if (!receipt || typeof receipt !== "object" || !Array.isArray(receipt.charges) || receipt.charges.length > 30) return "Receipt details are invalid.";
+  const fields = ["receiptDate", "trackingNumber", "service", "shipper", "consignee", "originAddress", "destinationAddress", "contents", "pieces", "weight", "estimatedDelivery", "shipmentStatus", "currency", "paymentStatus", "amountPaid", "amountPending", "customerService"];
+  for (const field of fields) {
+    if (typeof receipt[field] !== "string" || receipt[field].length > 500) return `Invalid receipt field: ${field}.`;
+  }
+  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(receipt.receiptDate)) return "Receipt date is required.";
+  if (!/^[A-Z0-9-]{1,40}$/i.test(receipt.trackingNumber)) return "Tracking number is invalid.";
+  if (!["GBP", "USD", "EUR"].includes(receipt.currency)) return "Choose a valid receipt currency.";
+  if (!["Pending", "Partially Paid", "Paid"].includes(receipt.paymentStatus)) return "Choose a valid payment status.";
+  if (!["Pending", "In Transit", "Delivered", "Exception"].includes(receipt.shipmentStatus)) return "Choose a valid shipment status.";
+  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(receipt.amountPaid) || !/^\\d+(?:\\.\\d{1,2})?$/.test(receipt.amountPending)) return "Payment amounts must be valid numbers.";
+  for (const charge of receipt.charges) {
+    if (!charge || typeof charge.name !== "string" || charge.name.length > 80 || !Number.isFinite(charge.amount) || charge.amount < 0) return "One or more receipt charges are invalid.";
+  }
+  return "";
 }
 
 async function writeShipments(shipments) {
@@ -335,6 +393,46 @@ export async function handleRequest(request, response) {
         return;
       }
       sendJson(response, 200, { authenticated: false }, { "Set-Cookie": sessionCookie(request, "", 0) });
+      return;
+    }
+
+    if (pathname.startsWith("/api/admin/receipts")) {
+      if (!getAdminSession(request)) {
+        sendJson(response, 401, { error: "Admin login required." });
+        return;
+      }
+      if (request.method !== "GET" && !sameOrigin(request)) {
+        sendJson(response, 403, { error: "Request origin rejected." });
+        return;
+      }
+      if (request.method === "GET" && pathname === "/api/admin/receipts") {
+        sendJson(response, 200, await readReceipts());
+        return;
+      }
+      if (request.method === "POST" && pathname === "/api/admin/receipts") {
+        const body = await readBody(request);
+        const id = typeof body.receiptNumber === "string" ? body.receiptNumber.trim() : "";
+        const validationError = validateReceipt(id, body);
+        if (validationError) {
+          sendJson(response, 400, { error: validationError });
+          return;
+        }
+        const receipt = { ...body, receiptNumber: id, updatedAt: new Date().toISOString() };
+        await saveReceipt(id, receipt);
+        sendJson(response, 200, { id, receipt });
+        return;
+      }
+      const match = pathname.match(/^\\/api\\/admin\\/receipts\\/([^/]+)$/);
+      if (request.method === "DELETE" && match) {
+        const id = decodeURIComponent(match[1]);
+        if (!(await deleteReceipt(id))) {
+          sendJson(response, 404, { error: "Receipt not found." });
+          return;
+        }
+        sendJson(response, 200, { deleted: id });
+        return;
+      }
+      sendJson(response, 405, { error: "Method not allowed." });
       return;
     }
 
