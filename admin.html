@@ -33,7 +33,19 @@
     </section>
 
     <section class="editor" id="editor" hidden>
+      <section class="dashboard-overview" aria-label="Shipment overview">
+        <div class="overview-heading"><div><h2>Overview</h2><p>Live summary of your shipment records</p></div></div>
+        <div class="overview-grid">
+          <article class="overview-card"><span>Total shipments</span><strong id="overview-total">0</strong></article>
+          <article class="overview-card"><span>In transit</span><strong id="overview-transit">0</strong></article>
+          <article class="overview-card"><span>At destination</span><strong id="overview-arrived">0</strong></article>
+          <article class="overview-card"><span>Delivered</span><strong id="overview-delivered">0</strong></article>
+        </div>
+      </section>
       <div class="editor-toolbar">
+        <label class="shipment-search-label" for="shipment-search">Find shipment
+          <input id="shipment-search" type="search" placeholder="Search tracking ID, origin or destination" autocomplete="off">
+        </label>
         <label for="shipment-select">Shipment record</label>
         <select id="shipment-select"></select>
         <button class="button-secondary" id="new-shipment" type="button">New shipment</button>
