@@ -202,7 +202,7 @@ async function saveReceipt(id, receipt) {
   const receipts = await readReceipts();
   receipts[id] = receipt;
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\\n`, "utf8");
+  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\n`, "utf8");
 }
 
 async function deleteReceipt(id) {
@@ -211,7 +211,7 @@ async function deleteReceipt(id) {
   if (!receipts[id]) return false;
   delete receipts[id];
   await mkdir(DATA_DIR, { recursive: true });
-  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\\n`, "utf8");
+  await writeFile(RECEIPTS_FILE, `${JSON.stringify(receipts, null, 2)}\n`, "utf8");
   return true;
 }
 
@@ -222,12 +222,12 @@ function validateReceipt(id, receipt) {
   for (const field of fields) {
     if (typeof receipt[field] !== "string" || receipt[field].length > 500) return `Invalid receipt field: ${field}.`;
   }
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(receipt.receiptDate)) return "Receipt date is required.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(receipt.receiptDate)) return "Receipt date is required.";
   if (!/^[A-Z0-9-]{1,40}$/i.test(receipt.trackingNumber)) return "Tracking number is invalid.";
   if (!["GBP", "USD", "EUR"].includes(receipt.currency)) return "Choose a valid receipt currency.";
   if (!["Pending", "Partially Paid", "Paid"].includes(receipt.paymentStatus)) return "Choose a valid payment status.";
   if (!["Pending", "In Transit", "Delivered", "Exception"].includes(receipt.shipmentStatus)) return "Choose a valid shipment status.";
-  if (!/^\\d+(?:\\.\\d{1,2})?$/.test(receipt.amountPaid) || !/^\\d+(?:\\.\\d{1,2})?$/.test(receipt.amountPending)) return "Payment amounts must be valid numbers.";
+  if (!/^\d+(?:\.\d{1,2})?$/.test(receipt.amountPaid) || !/^\d+(?:\.\d{1,2})?$/.test(receipt.amountPending)) return "Payment amounts must be valid numbers.";
   for (const charge of receipt.charges) {
     if (!charge || typeof charge.name !== "string" || charge.name.length > 80 || !Number.isFinite(charge.amount) || charge.amount < 0) return "One or more receipt charges are invalid.";
   }
@@ -422,7 +422,7 @@ export async function handleRequest(request, response) {
         sendJson(response, 200, { id, receipt });
         return;
       }
-      const match = pathname.match(/^\\/api\\/admin\\/receipts\\/([^/]+)$/);
+      const match = pathname.match(/^\/api\/admin\/receipts\/([^/]+)$/);
       if (request.method === "DELETE" && match) {
         const id = decodeURIComponent(match[1]);
         if (!(await deleteReceipt(id))) {
