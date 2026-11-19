@@ -800,3 +800,9 @@ a { color: inherit; text-decoration: none; }
   .tracking-number-row { gap: 7px; }
   .copy-tracking { min-height: 27px; padding: 0 8px; font-size: .64rem; }
 }
+
+
+/* Clear explanation beneath the shipment status */
+.status-description { max-width: 320px; margin: 8px 0 6px; color: #40546d; font-size: .76rem; line-height: 1.5; }
+.result-status .muted { margin-top: 5px; }
+@media (max-width: 800px) { .status-description { max-width: 100%; font-size: .74rem; } }
