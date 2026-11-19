@@ -17,6 +17,12 @@ let creating = false;
 let shipmentSearchTerm = "";
 let activeShipmentId = "";
 let shipmentDirty = false;
+function updateShipmentSaveState() {
+  const state = document.getElementById("shipment-save-state");
+  if (!state) return;
+  state.textContent = shipmentDirty ? "Unsaved changes" : "All changes saved";
+  state.classList.toggle("is-dirty", shipmentDirty);
+}
 
 function confirmDiscardShipmentChanges() {
   return !shipmentDirty || window.confirm("You have unsaved shipment changes. Leave this record without saving?");
@@ -64,6 +70,7 @@ function addEventRow(event = {}) {
   row.querySelector(".remove-event").addEventListener("click", () => {
     row.remove();
     shipmentDirty = true;
+    updateShipmentSaveState();
   });
   eventList.appendChild(row);
 }
@@ -71,6 +78,7 @@ function addEventRow(event = {}) {
 function renderShipment(id = "") {
   activeShipmentId = id;
   shipmentDirty = false;
+  updateShipmentSaveState();
   const shipment = shipments[id];
   creating = !shipment;
   shipmentForm.hidden = false;
@@ -198,8 +206,8 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-shipmentForm.addEventListener("input", () => { shipmentDirty = true; });
-shipmentForm.addEventListener("change", () => { shipmentDirty = true; });
+shipmentForm.addEventListener("input", () => { shipmentDirty = true; updateShipmentSaveState(); });
+shipmentForm.addEventListener("change", () => { shipmentDirty = true; updateShipmentSaveState(); });
 
 shipmentSelect.addEventListener("change", () => {
   if (shipmentSelect.value) {
@@ -229,6 +237,7 @@ document.getElementById("new-shipment").addEventListener("click", () => {
 document.getElementById("add-event").addEventListener("click", () => {
   addEventRow();
   shipmentDirty = true;
+  updateShipmentSaveState();
 });
 
 document.getElementById("logout").addEventListener("click", async () => {
