@@ -15,6 +15,7 @@ const deleteButton = document.getElementById("delete-shipment");
 let shipments = {};
 let creating = false;
 let shipmentSearchTerm = "";
+let activeShipmentId = "";
 
 function showMessage(text, kind = "error") {
   message.textContent = text;
@@ -52,6 +53,7 @@ function addEventRow(event = {}) {
 }
 
 function renderShipment(id = "") {
+  activeShipmentId = id;
   const shipment = shipments[id];
   creating = !shipment;
   shipmentForm.hidden = false;
@@ -88,7 +90,8 @@ function renderShipmentOptions(selectedId = "") {
     shipmentSelect.appendChild(option);
   }
   shipmentSelect.disabled = shipmentSelect.options.length === 0;
-  if (selectedId && [...shipmentSelect.options].some((option) => option.value === selectedId)) shipmentSelect.value = selectedId;
+  const preferredId = selectedId || activeShipmentId;
+  if (preferredId && [...shipmentSelect.options].some((option) => option.value === preferredId)) shipmentSelect.value = preferredId;
   else if (shipmentSelect.options.length) shipmentSelect.selectedIndex = 0;
   else {
     const option = document.createElement("option");
@@ -131,7 +134,7 @@ shipmentSelect.addEventListener("change", () => {
 });
 document.getElementById("shipment-search").addEventListener("input", (event) => {
   shipmentSearchTerm = event.target.value.trim().toLowerCase();
-  renderShipmentOptions(shipmentSelect.value);
+  renderShipmentOptions(activeShipmentId);
 });
 document.getElementById("new-shipment").addEventListener("click", () => renderShipment(""));
 document.getElementById("add-event").addEventListener("click", () => addEventRow());
