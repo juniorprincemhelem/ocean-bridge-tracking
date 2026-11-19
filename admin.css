@@ -186,3 +186,9 @@ input:focus, select:focus { outline: 2px solid rgba(7, 86, 175, .25); border-col
 @media (max-width: 700px) {
   .shipment-search-wrap { width: 100%; flex-basis: 100%; }
 }
+
+
+/* Clear shipment save-state feedback */
+.shipment-save-state { margin-right: auto; color: #557087; font-size: .78rem; font-weight: 600; }
+.shipment-save-state.is-dirty { color: #a45a08; }
+@media (max-width: 700px) { .shipment-save-state { width: 100%; margin-bottom: 2px; } }
